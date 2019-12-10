@@ -200,5 +200,27 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 
 RC RM_CloseFile(RM_FileHandle* fileHandle)
 {
-	return SUCCESS;
+
+	//关闭对应的页面文件
+
+	RC closeRC = CloseFile(fileHandle->pPFFileHandle);
+
+	if (closeRC == SUCCESS)
+	{
+
+		//销毁页面文件句柄
+
+		free(fileHandle->pPFFileHandle);
+		fileHandle->pPFFileHandle = NULL;
+
+		//添加标记并返回
+
+		fileHandle->bOpen = false;
+		return SUCCESS;
+
+	}
+	else
+	{
+		return closeRC;
+	}
 }
