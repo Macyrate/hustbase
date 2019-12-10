@@ -32,6 +32,7 @@ typedef struct
 typedef struct {//文件句柄
 	bool bOpen;//句柄是否打开（是否正在被使用）
 	//需要自定义其内部结构
+	PF_FileHandle* pPFFileHandle;		//此记录表对应的页面文件
 }RM_FileHandle;
 
 typedef struct {
