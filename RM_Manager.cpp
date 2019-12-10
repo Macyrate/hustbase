@@ -141,10 +141,42 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 		retHandle->pPFFileHandle = pfFileHandle;
 		retHandle->bOpen = true;
 
-		//TODO:读取记录长度
+		//获取记录控制信息页
 
-		return SUCCESS;
+		PF_PageHandle* pfPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+		pfPageHandle->bOpen = false;
 
+		RC getPageRC = GetThisPage(pfFileHandle, 1, pfPageHandle);
+
+		if (getPageRC == SUCCESS)
+		{
+
+			//获取记录控制信息页成功
+			//获取记录长度
+
+			int* headOfPage = (int*)(char*)pfPageHandle->pFrame->page.pData;
+			retHandle->recordSize = headOfPage[0];
+
+			//计算每页记录数
+
+			retHandle->recordPerPage = (PF_PAGESIZE - 4) / retHandle->recordSize;
+
+			//释放PageHandle，不能释放FileHandle
+
+			free(pfPageHandle);
+			return SUCCESS;
+
+		}
+		else
+		{
+
+			//释放资源，返回错误信息
+
+			free(pfPageHandle);
+			free(pfFileHandle);
+			return getPageRC;
+
+		}
 	}
 	else
 	{
@@ -153,6 +185,7 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 
 		free(pfFileHandle);
 		return openRC;
+
 	}
 }
 
