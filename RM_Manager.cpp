@@ -33,6 +33,7 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 	return SUCCESS;
 }
 
+//Œ¥≤‚ ‘
 RC RM_CreateFile(char* fileName, int recordSize)
 {
 
@@ -126,6 +127,7 @@ RC RM_CreateFile(char* fileName, int recordSize)
 	}
 }
 
+//Œ¥≤‚ ‘
 RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 {
 
@@ -198,6 +200,7 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 	}
 }
 
+//Œ¥≤‚ ‘
 RC RM_CloseFile(RM_FileHandle* fileHandle)
 {
 
