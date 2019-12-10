@@ -6,41 +6,41 @@
 
 void ExecuteAndMessage(char * sql,CEditArea* editArea){//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
-	if(s_sql.find("select") == 0){
-		SelResult res;
-		Init_Result(&res);
-		//rc = Query(sql,&res);
-		//将查询结果处理一下，整理成下面这种形式
-		//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
-		int col_num = 5;
-		int row_num = 3;
-		char ** fields = new char *[5];
-		for(int i = 0;i<col_num;i++){
-			fields[i] = new char[20];
-			memset(fields[i],0,20);
-			fields[i][0] = 'f';
-			fields[i][1] = i+'0';
-		}
-		char *** rows = new char**[row_num];
-		for(int i = 0;i<row_num;i++){
-			rows[i] = new char*[col_num];
-			for(int j = 0;j<col_num;j++){
-				rows[i][j] = new char[20];
-				memset(rows[i][j],0,20);
-				rows[i][j][0] = 'r';
-				rows[i][j][1] = i + '0';
-				rows[i][j][2] = '+';
-				rows[i][j][3] = j + '0';
-			}
-		}
-		editArea->ShowSelResult(col_num,row_num,fields,rows);
-		for(int i = 0;i<5;i++){
-			delete[] fields[i];
-		}
-		delete[] fields;
-		Destory_Result(&res);
-		return;
-	}
+	//if(s_sql.find("select") == 0){
+	//	SelResult res;
+	//	Init_Result(&res);
+	//	//rc = Query(sql,&res);
+	//	//将查询结果处理一下，整理成下面这种形式
+	//	//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
+	//	int col_num = 5;
+	//	int row_num = 3;
+	//	char ** fields = new char *[5];
+	//	for(int i = 0;i<col_num;i++){
+	//		fields[i] = new char[20];
+	//		memset(fields[i],0,20);
+	//		fields[i][0] = 'f';
+	//		fields[i][1] = i+'0';
+	//	}
+	//	char *** rows = new char**[row_num];
+	//	for(int i = 0;i<row_num;i++){
+	//		rows[i] = new char*[col_num];
+	//		for(int j = 0;j<col_num;j++){
+	//			rows[i][j] = new char[20];
+	//			memset(rows[i][j],0,20);
+	//			rows[i][j][0] = 'r';
+	//			rows[i][j][1] = i + '0';
+	//			rows[i][j][2] = '+';
+	//			rows[i][j][3] = j + '0';
+	//		}
+	//	}
+	//	editArea->ShowSelResult(col_num,row_num,fields,rows);
+	//	for(int i = 0;i<5;i++){
+	//		delete[] fields[i];
+	//	}
+	//	delete[] fields;
+	//	Destory_Result(&res);
+	//	return;
+	//}
 	RC rc = execute(sql);
 	int row_num = 0;
 	char**messages;
