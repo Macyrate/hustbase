@@ -34,10 +34,17 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 }
 
 //最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_CreateFile(char* fileName, int recordSize)
 {
+
+	//检查recordSize
+
+	if (recordSize <= 0 || recordSize > 4092)
+	{
+		return RM_INVALIDRECSIZE;
+	}
 
 	//创建新文件
 
@@ -205,10 +212,17 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 }
 
 //最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_CloseFile(RM_FileHandle* fileHandle)
 {
+
+	//检查fileHandle的状态
+
+	if (fileHandle->bOpen == false)
+	{
+		return RM_FHCLOSED;
+	}
 
 	//关闭对应的页面文件
 
