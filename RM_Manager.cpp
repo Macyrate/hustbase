@@ -35,7 +35,82 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 
 RC RM_CreateFile(char* fileName, int recordSize)
 {
-	return SUCCESS;
+
+	//创建新文件
+
+	RC createRC = CreateFile(fileName);
+
+	if (createRC == SUCCESS)
+	{
+
+		//文件创建成功
+
+		PF_FileHandle* handle = getPF_FileHandle();
+		RC openRC = openFile(fileName, handle);
+
+		if (openRC == SUCCESS)
+		{
+
+			//文件打开成功
+			//创建记录信息控制页
+
+			PF_PageHandle* pgHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+			pgHandle->bOpen = false;
+
+			RC allocateRC = AllocatePage(handle, pgHandle);
+
+			if (allocateRC == SUCCESS)
+			{
+
+				//记录信息控制页创建成功
+				//页面信息清零
+
+				for (int i = 0; i < PF_PAGE_SIZE; i++)
+				{
+					pgHandle->pFrame->page.pData[i] = 0;
+				}
+
+				//填充记录信息控制页信息：记录长度
+
+				int* headOfPage = (int*)(char*)pgHandle->pFrame->page.pData;
+				headOfPage[0] = recordSize;
+
+				//释放资源，返回成功
+
+				free(pgHandle);
+				free(handle);
+				return SUCCESS;
+
+			}
+			else
+			{
+
+				//释放资源，返回错误信息
+
+				free(pgHandle);
+				free(handle);
+				return allocateRC;
+
+			}
+		}
+		else
+		{
+
+			//释放资源，返回错误信息
+
+			free(handle);
+			return openRC;
+
+		}
+	}
+	else
+	{
+
+		//返回错误信息
+
+		return createRC;
+
+	}
 }
 
 RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
