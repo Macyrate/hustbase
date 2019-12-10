@@ -75,6 +75,11 @@ RC RM_CreateFile(char* fileName, int recordSize)
 				int* headOfPage = (int*)(char*)pgHandle->pFrame->page.pData;
 				headOfPage[0] = recordSize;
 
+				//标记页面为脏页并Unpin
+
+				MarkDirty(pgHandle);
+				UnpinPage(pgHandle);
+
 				//关闭文件
 
 				RC closeRC = CloseFile(fileHandle);
@@ -160,6 +165,10 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 			//计算每页记录数
 
 			retHandle->recordPerPage = (PF_PAGESIZE - 4) / retHandle->recordSize;
+
+			//将页面Unpin便于淘汰
+
+			UnpinPage(pfPageHandle);
 
 			//释放PageHandle，不能释放FileHandle
 
