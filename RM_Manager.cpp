@@ -29,6 +29,10 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 		return RM_FHCLOSED;
 	}
 
+	//避免更改rid的地址值
+
+	RID* retRID = rid;
+
 	//fileHandle处于打开状态
 	//检查第一个空槽位所在的页
 
@@ -36,12 +40,119 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 	{
 
 		//未分配任何页面或已分配的页面全满
+		//分配新的页面
 
+		PF_PageHandle* pgHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+		pgHandle->bOpen = false;
 
+		RC allocateRC = AllocatePage(fileHandle->pPFFileHandle, pgHandle);
 
+		if (allocateRC == SUCCESS)
+		{
+
+			//分配页面成功
+			//记录首个空槽位为0
+
+			short* firstEmptyOfPage = (short*)(char*)pgHandle->pFrame->page.pData;
+			*firstEmptyOfPage = 0;
+
+			//完成空槽位串联
+
+			char* firstSlot = (char*)pgHandle->pFrame->page.pData + 2;
+
+			//串联第一个空槽位
+
+			((short*)firstSlot)[0] = 0;
+			((short*)firstSlot)[1] = 0;
+			((short*)(firstSlot + fileHandle->recordSize + 4))[0] = pgHandle->pFrame->page.pageNum;
+			((short*)(firstSlot + fileHandle->recordSize + 4))[1] = 1;
+
+			//串联中间的槽位
+
+			for (int i = 1; i < fileHandle->recordPerPage - 1; i++)
+			{
+				char* currentSlot = firstSlot + i * (fileHandle->recordSize + 8);
+				((short*)currentSlot)[0] = 0;
+				((short*)currentSlot)[1] = 0;
+				((short*)(currentSlot + fileHandle->recordSize + 4))[0] = pgHandle->pFrame->page.pageNum;
+				((short*)(currentSlot + fileHandle->recordSize + 4))[1] = i + 1;
+			}
+
+			//串联最后的空槽位
+
+			char* lastSlot = firstSlot + (fileHandle->recordPerPage - 1) * (fileHandle->recordSize + 8);
+			((short*)lastSlot)[0] = 0;
+			((short*)lastSlot)[1] = 0;
+			((short*)(lastSlot + fileHandle->recordSize + 4))[0] = -1;
+			((short*)(lastSlot + fileHandle->recordSize + 4))[1] = -1;
+
+			//在句柄中记录首个有空槽的页面
+
+			fileHandle->firstEmptyPage = pgHandle->pFrame->page.pageNum;
+
+			//标记脏页面并Unpin
+
+			MarkDirty(pgHandle);
+			UnpinPage(pgHandle);
+
+			//销毁页面句柄
+
+			free(pgHandle);
+
+		}
+		else
+		{
+
+			//释放资源并返回
+
+			free(pgHandle);
+			return allocateRC;
+
+		}
 	}
 
-	return SUCCESS;
+	//记录插入记录的页面位置
+
+	retRID->pageNum = fileHandle->firstEmptyPage;
+
+	//获取对应的页面
+
+	PF_PageHandle* pfPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	RC getPageRC = GetThisPage(fileHandle->pPFFileHandle, fileHandle->firstEmptyPage, pfPageHandle);
+
+	if (getPageRC == SUCCESS)
+	{
+
+		//页面获取成功
+		//读取页面首个空槽位
+
+		short* firstEmptySlotOfPage = (short*)(char*)pfPageHandle->pFrame->page.pData;
+		retRID->slotNum = *firstEmptySlotOfPage;
+
+		//将数据拷贝入此槽位中
+
+		char* targetSlot = ((char*)pfPageHandle->pFrame->page.pData + retRID->slotNum * (fileHandle->recordSize + 8) + 2);
+		char* targetSlotData = targetSlot + 4;
+
+		for (int i = 0; i < fileHandle->recordSize; i++)
+		{
+			targetSlotData[i] = pData[i];
+		}
+
+		//TODO：串联新的记录，处理空槽位信息，处理控制页信息
+
+		return SUCCESS;
+
+	}
+	else
+	{
+
+		//释放资源并返回
+
+		free(pfPageHandle);
+		return getPageRC;
+
+	}
 }
 
 RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
@@ -62,7 +173,7 @@ RC RM_CreateFile(char* fileName, int recordSize)
 
 	//检查recordSize
 
-	if (recordSize <= 0 || recordSize > 4092)
+	if (recordSize <= 0 || recordSize > 4082)
 	{
 		return RM_INVALIDRECSIZE;
 	}
@@ -213,7 +324,7 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 			int* headOfPage = (int*)(char*)pfPageHandle->pFrame->page.pData;
 			retHandle->recordSize = *headOfPage;
 
-			//获取第一个空白页码
+			//获取第一个有空槽位页码
 
 			short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
 			retHandle->firstEmptyPage = *ptrFirstEmpty;
@@ -335,7 +446,7 @@ RC RM_CloseFile(RM_FileHandle* fileHandle)
 	{
 
 		//获取记录控制信息页成功
-		//更新第一个空白页信息
+		//更新第一个有空槽位页信息
 
 		short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
 		*ptrFirstEmpty = fileHandle->firstEmptyPage;
