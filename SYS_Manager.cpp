@@ -2,9 +2,10 @@
 #include "EditArea.h"
 #include "SYS_Manager.h"
 #include "QU_Manager.h"
+#include "RM_Manager.h"
 #include <iostream>
 
-void ExecuteAndMessage(char * sql,CEditArea* editArea){//¸ù¾İÖ´ĞĞµÄÓï¾äÀàĞÍÔÚ½çÃæÉÏÏÔÊ¾Ö´ĞĞ½á¹û¡£´Ëº¯ÊıĞèĞŞ¸Ä
+void ExecuteAndMessage(char* sql, CEditArea* editArea) {//¸ù¾İÖ´ĞĞµÄÓï¾äÀàĞÍÔÚ½çÃæÉÏÏÔÊ¾Ö´ĞĞ½á¹û¡£´Ëº¯ÊıĞèĞŞ¸Ä
 	std::string s_sql = sql;
 	//if(s_sql.find("select") == 0){
 	//	SelResult res;
@@ -41,40 +42,46 @@ void ExecuteAndMessage(char * sql,CEditArea* editArea){//¸ù¾İÖ´ĞĞµÄÓï¾äÀàĞÍÔÚ½çÃ
 	//	Destory_Result(&res);
 	//	return;
 	//}
+	/*--------------------ÒÔÏÂ´úÂëÎª²âÊÔRM_Manager£¬ÎŞÊµ¼ÊÒâÒå--------------------*/
+	RM_CreateFile("abc", 32);
+	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
+	RM_OpenFile("abc", handle);
+	RM_CloseFile(handle);
+	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);
 	int row_num = 0;
-	char**messages;
-	switch(rc){
+	char** messages;
+	switch (rc) {
 	case SUCCESS:
 		row_num = 1;
-		messages = new char*[row_num];
+		messages = new char* [row_num];
 		messages[0] = "²Ù×÷³É¹¦";
-		editArea->ShowMessage(row_num,messages);
+		editArea->ShowMessage(row_num, messages);
 		delete[] messages;
 		break;
 	case SQL_SYNTAX:
 		row_num = 1;
-		messages = new char*[row_num];
+		messages = new char* [row_num];
 		messages[0] = "ÓĞÓï·¨´íÎó";
-		editArea->ShowMessage(row_num,messages);
+		editArea->ShowMessage(row_num, messages);
 		delete[] messages;
 		break;
 	default:
 		row_num = 1;
-		messages = new char*[row_num];
+		messages = new char* [row_num];
 		messages[0] = "¹¦ÄÜÎ´ÊµÏÖ";
-		editArea->ShowMessage(row_num,messages);
-	delete[] messages;
+		editArea->ShowMessage(row_num, messages);
+		delete[] messages;
 		break;
 	}
 }
 
-RC execute(char * sql){
-	sqlstr *sql_str = NULL;
+RC execute(char* sql) {
+	sqlstr* sql_str = NULL;
 	RC rc;
 	sql_str = get_sqlstr();
-  	rc = parse(sql, sql_str);//Ö»ÓĞÁ½ÖÖ·µ»Ø½á¹ûSUCCESSºÍSQL_SYNTAX
-	
+	rc = parse(sql, sql_str);//Ö»ÓĞÁ½ÖÖ·µ»Ø½á¹ûSUCCESSºÍSQL_SYNTAX
+
 	if (rc == SUCCESS)
 	{
 		int i = 0;
@@ -85,65 +92,66 @@ RC execute(char * sql){
 
 			//break;
 
-			case 2:
+		case 2:
 			//ÅĞ¶ÏSQLÓï¾äÎªinsertÓï¾ä
 
-			case 3:	
+		case 3:
 			//ÅĞ¶ÏSQLÓï¾äÎªupdateÓï¾ä
 			break;
 
-			case 4:					
+		case 4:
 			//ÅĞ¶ÏSQLÓï¾äÎªdeleteÓï¾ä
 			break;
 
-			case 5:
+		case 5:
 			//ÅĞ¶ÏSQLÓï¾äÎªcreateTableÓï¾ä
 			break;
 
-			case 6:	
+		case 6:
 			//ÅĞ¶ÏSQLÓï¾äÎªdropTableÓï¾ä
 			break;
 
-			case 7:
+		case 7:
 			//ÅĞ¶ÏSQLÓï¾äÎªcreateIndexÓï¾ä
 			break;
-	
-			case 8:	
+
+		case 8:
 			//ÅĞ¶ÏSQLÓï¾äÎªdropIndexÓï¾ä
 			break;
-			
-			case 9:
+
+		case 9:
 			//ÅĞ¶ÏÎªhelpÓï¾ä£¬¿ÉÒÔ¸ø³ö°ïÖúÌáÊ¾
 			break;
-		
-			case 10: 
+
+		case 10:
 			//ÅĞ¶ÏÎªexitÓï¾ä£¬¿ÉÒÔÓÉ´Ë½øĞĞÍË³ö²Ù×÷
-			break;		
+			break;
 		}
-	}else{
+	}
+	else {
 		AfxMessageBox(sql_str->sstr.errors);//µ¯³ö¾¯¸æ¿ò£¬sqlÓï¾ä´Ê·¨½âÎö´íÎóĞÅÏ¢
 		return rc;
 	}
 }
 
-RC CreateDB(char *dbpath,char *dbname){
+RC CreateDB(char* dbpath, char* dbname) {
 	return SUCCESS;
 }
 
-RC DropDB(char *dbname){
+RC DropDB(char* dbname) {
 	return SUCCESS;
 }
 
-RC OpenDB(char *dbname){
+RC OpenDB(char* dbname) {
 	return SUCCESS;
 }
 
 
-RC CloseDB(){
+RC CloseDB() {
 	return SUCCESS;
 }
 
-bool CanButtonClick(){//ĞèÒªÖØĞÂÊµÏÖ
+bool CanButtonClick() {//ĞèÒªÖØĞÂÊµÏÖ
 	//Èç¹ûµ±Ç°ÓĞÊı¾İ¿âÒÑ¾­´ò¿ª
 	return true;
 	//Èç¹ûµ±Ç°Ã»ÓĞÊı¾İ¿â´ò¿ª

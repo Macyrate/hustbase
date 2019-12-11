@@ -33,8 +33,8 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 	return SUCCESS;
 }
 
-//最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期（已更新）
+//最后测试时间：2019/12/11 8:58
+//最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC RM_CreateFile(char* fileName, int recordSize)
 {
@@ -141,8 +141,8 @@ RC RM_CreateFile(char* fileName, int recordSize)
 	}
 }
 
-//最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期（已更新）
+//最后测试时间：2019/12/11 8:58
+//最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 {
@@ -222,8 +222,8 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 	}
 }
 
-//最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期（已更新）
+//最后测试时间：2019/12/11 8:58
+//最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC RM_CloseFile(RM_FileHandle* fileHandle)
 {
