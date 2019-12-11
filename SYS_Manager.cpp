@@ -43,9 +43,14 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//	return;
 	//}
 	/*--------------------以下代码为测试RM_Manager，无实际意义--------------------*/
-	RM_CreateFile("abc", 32);
+	//RM_CreateFile("abc", 32);
 	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	RM_OpenFile("abc", handle);
+	handle->firstEmptyPage = 2;
+	handle->pFirstRecord->pageNum = 34;
+	handle->pFirstRecord->slotNum = 35;
+	handle->pLastRecord->pageNum = 11;
+	handle->pLastRecord->slotNum = 12;
 	RM_CloseFile(handle);
 	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);
