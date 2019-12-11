@@ -223,7 +223,7 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 }
 
 //最后测试时间：2019/12/11 8:58
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_CloseFile(RM_FileHandle* fileHandle)
 {
@@ -233,6 +233,42 @@ RC RM_CloseFile(RM_FileHandle* fileHandle)
 	if (fileHandle->bOpen == false)
 	{
 		return RM_FHCLOSED;
+	}
+
+	//获取记录控制信息页
+
+	PF_PageHandle* pfPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	pfPageHandle->bOpen = false;
+
+	RC getPageRC = GetThisPage(fileHandle->pPFFileHandle, 1, pfPageHandle);
+
+	if (getPageRC == SUCCESS)
+	{
+
+		//获取记录控制信息页成功
+		//更新第一个空白页信息
+
+		short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
+		*ptrFirstEmpty = fileHandle->firstEmptyPage;
+
+		//标记为脏页并Unpin
+
+		MarkDirty(pfPageHandle);
+		UnpinPage(pfPageHandle);
+
+		//销毁页面句柄
+
+		free(pfPageHandle);
+
+	}
+	else
+	{
+
+		//释放资源并返回
+
+		free(pfPageHandle);
+		return getPageRC;
+
 	}
 
 	//关闭对应的页面文件
