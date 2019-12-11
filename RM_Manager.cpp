@@ -118,6 +118,8 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 	//获取对应的页面
 
 	PF_PageHandle* pfPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	pfPageHandle->bOpen = false;
+
 	RC getPageRC = GetThisPage(fileHandle->pPFFileHandle, fileHandle->firstEmptyPage, pfPageHandle);
 
 	if (getPageRC == SUCCESS)
@@ -131,7 +133,7 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 
 		//将数据拷贝入此槽位中
 
-		char* targetSlot = ((char*)pfPageHandle->pFrame->page.pData + retRID->slotNum * (fileHandle->recordSize + 8) + 2);
+		char* targetSlot = (char*)pfPageHandle->pFrame->page.pData + retRID->slotNum * (fileHandle->recordSize + 8) + 2;
 		char* targetSlotData = targetSlot + 4;
 
 		for (int i = 0; i < fileHandle->recordSize; i++)
@@ -139,10 +141,76 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 			targetSlotData[i] = pData[i];
 		}
 
-		//TODO：串联新的记录，处理空槽位信息，处理控制页信息
+		//读取最后的有效记录
 
-		return SUCCESS;
+		if (fileHandle->pLastRecord->pageNum == -1)
+		{
 
+			//未储存任何数据
+
+			fileHandle->pLastRecord->pageNum = retRID->pageNum;
+			fileHandle->pLastRecord->slotNum = retRID->slotNum;
+			fileHandle->pLastRecord->bValid = true;
+
+			fileHandle->pFirstRecord->pageNum = retRID->pageNum;
+			fileHandle->pFirstRecord->slotNum = retRID->slotNum;
+			fileHandle->pFirstRecord->bValid = true;
+
+		}
+		else
+		{
+
+			//获取原先最后记录所在的页面
+
+			PF_PageHandle* lastRecordPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+			lastRecordPageHandle->bOpen = false;
+
+			RC getThisPageRC = GetThisPage(fileHandle->pPFFileHandle, fileHandle->pLastRecord->pageNum, lastRecordPageHandle);
+
+			if (getThisPageRC == SUCCESS)
+			{
+
+				//页面获取成功
+				//将原先最后的有效记录连接至新纪录
+
+				char* oldLastRecord = (char*)lastRecordPageHandle->pFrame->page.pData + fileHandle->pLastRecord->slotNum * (fileHandle->recordSize + 8) + 2;
+				short* oldLastRecordNext = (short*)(oldLastRecord + fileHandle->recordSize + 4);
+				oldLastRecordNext[0] = retRID->pageNum;
+				oldLastRecordNext[0] = retRID->slotNum;
+
+				//TODO：将新记录的父亲设置为原先原先最后的有效记录
+				//TODO：将空位指针指向下一个空位
+				//TODO：将新纪录的下一个指针指向（-1，-1）
+
+				//更新最后有效记录信息
+
+				fileHandle->pLastRecord->pageNum = retRID->pageNum;
+				fileHandle->pLastRecord->slotNum = retRID->slotNum;
+				fileHandle->pLastRecord->bValid = true;
+
+				//标记藏页面并Unpin
+
+				MarkDirty(lastRecordPageHandle);
+				UnpinPage(lastRecordPageHandle);
+
+				//销毁页面句柄
+
+				free(lastRecordPageHandle);
+
+			}
+			else
+			{
+
+				//释放资源并返回
+
+				free(pfPageHandle);
+				free(lastRecordPageHandle);
+				return getThisPageRC;
+
+			}
+		}
+
+		//TODO：标记藏页面，Unpin
 	}
 	else
 	{
