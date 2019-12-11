@@ -55,7 +55,7 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 }
 
 //最后测试时间：2019/12/11 8:58
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_CreateFile(char* fileName, int recordSize)
 {
@@ -175,7 +175,7 @@ RC RM_CreateFile(char* fileName, int recordSize)
 }
 
 //最后测试时间：2019/12/11 8:58
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 {
