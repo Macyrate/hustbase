@@ -18,8 +18,29 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 	return SUCCESS;
 }
 
+//未完成
 RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 {
+
+	//检查fileHandle的状态
+
+	if (fileHandle->bOpen == false)
+	{
+		return RM_FHCLOSED;
+	}
+
+	//fileHandle处于打开状态
+	//检查第一个空槽位所在的页
+
+	if (fileHandle->firstEmptyPage == -1)
+	{
+
+		//未分配任何页面或已分配的页面全满
+
+
+
+	}
+
 	return SUCCESS;
 }
 
@@ -85,10 +106,22 @@ RC RM_CreateFile(char* fileName, int recordSize)
 				int* headOfPage = (int*)(char*)pgHandle->pFrame->page.pData;
 				*headOfPage = recordSize;
 
-				//记录第一个有空位的页面，-1表示未分配任何数据页面
+				//记录第一个有空位的页面，-1表示未分配任何数据页面或已分配的页面全满
 
 				short* ptrFirstEmpty = (short*)(((char*)pgHandle->pFrame->page.pData) + 4);
 				*ptrFirstEmpty = -1;
+
+				//记录第一条有效数据的位置，（-1，-1）表示未储存任何数据
+
+				short* ptrFirstRecord = (short*)(((char*)pgHandle->pFrame->page.pData) + 6);
+				ptrFirstRecord[0] = -1;
+				ptrFirstRecord[1] = -1;
+
+				//记录最后一条有效数据的位置，（-1，-1）表示未储存任何数据
+
+				short* ptrLastRecord = (short*)(((char*)pgHandle->pFrame->page.pData) + 10);
+				ptrLastRecord[0] = -1;
+				ptrLastRecord[1] = -1;
 
 				//标记页面为脏页并Unpin
 
@@ -185,10 +218,66 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 			short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
 			retHandle->firstEmptyPage = *ptrFirstEmpty;
 
-			//计算每页记录数：每条记录后有4B的指向信息
+			//获取第一条有效记录的位置
+
+			RID* firstRecordRID = (RID*)malloc(sizeof(RID));
+			short* ptrFirstRecord = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 6);
+
+			if (ptrFirstRecord[0] == -1)
+			{
+
+				//未储存任何数据
+
+				firstRecordRID->pageNum = -1;
+				firstRecordRID->slotNum = -1;
+				firstRecordRID->bValid = false;
+
+			}
+			else
+			{
+
+				//储存有数据，记录第一条数据的位置
+
+				firstRecordRID->pageNum = ptrFirstRecord[0];
+				firstRecordRID->slotNum = ptrFirstRecord[1];
+				firstRecordRID->bValid = true;
+
+			}
+
+			retHandle->pFirstRecord = firstRecordRID;
+
+			//获取最后一条有效记录的位置
+
+			RID* lastRecordRID = (RID*)malloc(sizeof(RID));
+			short* ptrLastRecord = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 10);
+
+			if (ptrLastRecord[0] == -1)
+			{
+
+				//未储存任何数据
+
+				lastRecordRID->pageNum = -1;
+				lastRecordRID->slotNum = -1;
+				lastRecordRID->bValid = false;
+
+			}
+			else
+			{
+
+				//储存有数据，记录最后一条数据的位置
+
+				lastRecordRID->pageNum = ptrLastRecord[0];
+				lastRecordRID->slotNum = ptrLastRecord[1];
+				lastRecordRID->bValid = true;
+
+			}
+
+			retHandle->pLastRecord = lastRecordRID;
+
+			//计算每页记录数：每条记录前后有8B的指向信息
 			//每页前有4B页面控制信息，2B指向第一个空槽位的记录
 
-			retHandle->recordPerPage = (PF_PAGESIZE - 6) / (retHandle->recordSize + 4);
+			retHandle->recordPerPage = (PF_PAGESIZE - 6) / (retHandle->recordSize + 8);
 
 			//将页面Unpin便于淘汰
 
@@ -251,6 +340,18 @@ RC RM_CloseFile(RM_FileHandle* fileHandle)
 		short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
 		*ptrFirstEmpty = fileHandle->firstEmptyPage;
 
+		//更新首条记录信息
+
+		short* ptrFirstRecord = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 6);
+		ptrFirstRecord[0] = fileHandle->pFirstRecord->pageNum;
+		ptrFirstRecord[1] = fileHandle->pFirstRecord->slotNum;
+
+		//更新末条记录信息
+
+		short* ptrLastRecord = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 10);
+		ptrLastRecord[0] = fileHandle->pLastRecord->pageNum;
+		ptrLastRecord[1] = fileHandle->pLastRecord->slotNum;
+
 		//标记为脏页并Unpin
 
 		MarkDirty(pfPageHandle);
@@ -282,6 +383,13 @@ RC RM_CloseFile(RM_FileHandle* fileHandle)
 
 		free(fileHandle->pPFFileHandle);
 		fileHandle->pPFFileHandle = NULL;
+
+		//销毁首条、末条记录RID
+
+		free(fileHandle->pFirstRecord);
+		free(fileHandle->pLastRecord);
+		fileHandle->pFirstRecord = NULL;
+		fileHandle->pLastRecord = NULL;
 
 		//添加标记并返回
 

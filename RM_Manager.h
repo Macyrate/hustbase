@@ -36,6 +36,8 @@ typedef struct {//文件句柄
 	int recordSize;			//记录表中记录的长度
 	int recordPerPage;		//记录表中一页可用的记录数
 	int firstEmptyPage;		//记录第一个空白页码
+	RID* pFirstRecord;		//记录第一个有效记录的RID
+	RID* pLastRecord;		//记录最后一个有效记录的RID
 }RM_FileHandle;
 
 typedef struct {
