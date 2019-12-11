@@ -83,7 +83,12 @@ RC RM_CreateFile(char* fileName, int recordSize)
 				//填充记录信息控制页信息：记录长度
 
 				int* headOfPage = (int*)(char*)pgHandle->pFrame->page.pData;
-				headOfPage[0] = recordSize;
+				*headOfPage = recordSize;
+
+				//记录第一个有空位的页面，-1表示未分配任何数据页面
+
+				short* ptrFirstEmpty = (short*)(((char*)pgHandle->pFrame->page.pData) + 4);
+				*ptrFirstEmpty = -1;
 
 				//标记页面为脏页并Unpin
 
@@ -137,7 +142,7 @@ RC RM_CreateFile(char* fileName, int recordSize)
 }
 
 //最后测试时间：2019/12/10 15：31
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更新）
 //最后测试人：strangenameBC
 RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 {
@@ -173,11 +178,17 @@ RC RM_OpenFile(char* fileName, RM_FileHandle* fileHandle)
 			//获取记录长度
 
 			int* headOfPage = (int*)(char*)pfPageHandle->pFrame->page.pData;
-			retHandle->recordSize = headOfPage[0];
+			retHandle->recordSize = *headOfPage;
 
-			//计算每页记录数
+			//获取第一个空白页码
 
-			retHandle->recordPerPage = (PF_PAGESIZE - 4) / retHandle->recordSize;
+			short* ptrFirstEmpty = (short*)(((char*)pfPageHandle->pFrame->page.pData) + 4);
+			retHandle->firstEmptyPage = *ptrFirstEmpty;
+
+			//计算每页记录数：每条记录后有4B的指向信息
+			//每页前有4B页面控制信息，2B指向第一个空槽位的记录
+
+			retHandle->recordPerPage = (PF_PAGESIZE - 6) / (retHandle->recordSize + 4);
 
 			//将页面Unpin便于淘汰
 

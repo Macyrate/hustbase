@@ -35,6 +35,7 @@ typedef struct {//文件句柄
 	PF_FileHandle* pPFFileHandle;		//此记录表对应的页面文件
 	int recordSize;			//记录表中记录的长度
 	int recordPerPage;		//记录表中一页可用的记录数
+	int firstEmptyPage;		//记录第一个空白页码
 }RM_FileHandle;
 
 typedef struct {
