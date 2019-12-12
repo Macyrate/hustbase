@@ -18,7 +18,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 	return SUCCESS;
 }
 
-//最后测试时间：2019/12/12
+//最后测试时间：2019/12/12 10:55
 //最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
@@ -283,7 +283,9 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 	}
 }
 
-//未测试
+//最后测试时间：2019/12/12 10:55
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 {
 
@@ -579,6 +581,11 @@ RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 
 		fileHandle->firstEmptyPage = rid->pageNum;
 
+		//将此页面的首个空槽位设置为刚清除的槽位
+
+		short* firstEmptySlot = (short*)(char*)targetPageHandle->pFrame->page.pData;
+		*firstEmptySlot = rid->slotNum;
+
 		//标记脏页面并Unpin
 
 		MarkDirty(targetPageHandle);
@@ -601,9 +608,89 @@ RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 	}
 }
 
+//最后测试时间：2019/12/12 11:20
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 {
-	return SUCCESS;
+
+	//检查fileHandle的状态
+
+	if (fileHandle->bOpen == false)
+	{
+		return RM_FHCLOSED;
+	}
+
+	//检查槽位号
+
+	if (rec->rid.slotNum >= fileHandle->recordPerPage)
+	{
+		return RM_INVALIDRID;
+	}
+
+	//打开记录所在的页面
+
+	PF_PageHandle* targetPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	targetPageHandle->bOpen = false;
+
+	RC getTargetPageRC = GetThisPage(fileHandle->pPFFileHandle, rec->rid.pageNum, targetPageHandle);
+
+	if (getTargetPageRC == SUCCESS)
+	{
+
+		//获取页面成功
+		//检查槽位是否为空
+
+		char* targetSlot = (char*)targetPageHandle->pFrame->page.pData + rec->rid.slotNum * (fileHandle->recordSize + 8) + 2;
+		short* targetSlotPrevious = (short*)targetSlot;
+
+		if (targetSlotPrevious[0] == 0)
+		{
+
+			//这是个空槽位，无法更新
+			//Unpin页面
+
+			UnpinPage(targetPageHandle);
+
+			//释放资源并返回错误信息
+
+			free(targetPageHandle);
+			return RM_INVALIDRID;
+
+		}
+		else
+		{
+
+			//这不是空槽位，可以更新
+			//更新内容
+
+			char* targetSlotData = targetSlot + 4;
+
+			for (int i = 0; i < fileHandle->recordSize; i++)
+			{
+				targetSlotData[i] = rec->pData[i];
+			}
+
+			//标记脏页面并Unpin
+
+			MarkDirty(targetPageHandle);
+			UnpinPage(targetPageHandle);
+
+			//返回成功信息
+
+			return SUCCESS;
+
+		}
+	}
+	else
+	{
+
+		//释放资源并返回错误信息
+
+		free(targetPageHandle);
+		return getTargetPageRC;
+
+	}
 }
 
 //最后测试时间：2019/12/11 10:12
