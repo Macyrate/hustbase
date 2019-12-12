@@ -164,6 +164,9 @@ void CHustBaseApp::OnAppAbout()
 void CHustBaseApp::OnCreateDB()
 {
 	//关联创建数据库按钮，此处应提示用户输入数据库的存储路径和名称，并调用CreateDB函数创建数据库。
+	char dbpath[] = "C:\\GitHub";
+	char dbname[] = "TestDB";
+	CreateDB(dbpath, dbname);
 }
 
 void CHustBaseApp::OnOpenDB() 
