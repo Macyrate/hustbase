@@ -18,7 +18,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 	return SUCCESS;
 }
 
-//未完成
+//未测试
 RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 {
 
@@ -176,11 +176,49 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 				char* oldLastRecord = (char*)lastRecordPageHandle->pFrame->page.pData + fileHandle->pLastRecord->slotNum * (fileHandle->recordSize + 8) + 2;
 				short* oldLastRecordNext = (short*)(oldLastRecord + fileHandle->recordSize + 4);
 				oldLastRecordNext[0] = retRID->pageNum;
-				oldLastRecordNext[0] = retRID->slotNum;
+				oldLastRecordNext[1] = retRID->slotNum;
 
-				//TODO：将新记录的父亲设置为原先原先最后的有效记录
-				//TODO：将空位指针指向下一个空位
-				//TODO：将新纪录的下一个指针指向（-1，-1）
+				//将新记录的父亲设置为原先原先最后的有效记录
+
+				short* targetSlotPrevious = (short*)targetSlot;
+				targetSlotPrevious[0] = fileHandle->pLastRecord->pageNum;
+				targetSlotPrevious[1] = fileHandle->pLastRecord->slotNum;
+
+				//将空位指针指向下一个空位
+
+				short* targetSlotNext = (short*)(targetSlot + fileHandle->recordSize + 4);
+
+				if (targetSlotNext[0] != pfPageHandle->pFrame->page.pageNum)
+				{
+
+					//下一个空位不再位于此页面上
+
+					*firstEmptySlotOfPage = -1;
+					fileHandle->firstEmptyPage = targetSlotNext[0];
+
+				}
+				else if (targetSlotNext[0] != -1)
+				{
+
+					//下一个空位仍然位于此页面上
+
+					*firstEmptySlotOfPage = targetSlotNext[1];
+
+				}
+				else
+				{
+
+					//没有空位了
+
+					*firstEmptySlotOfPage = -1;
+					fileHandle->firstEmptyPage = -1;
+
+				}
+
+				//将新纪录的下一个指针指向（-1，-1）
+
+				targetSlotNext[0] = -1;
+				targetSlotNext[1] = -1;
 
 				//更新最后有效记录信息
 
@@ -210,7 +248,12 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 			}
 		}
 
-		//TODO：标记藏页面，Unpin
+		//标记藏页面，Unpin
+
+		MarkDirty(pfPageHandle);
+		UnpinPage(pfPageHandle);
+		return SUCCESS;
+
 	}
 	else
 	{
