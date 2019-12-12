@@ -252,6 +252,10 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 
 		MarkDirty(pfPageHandle);
 		UnpinPage(pfPageHandle);
+
+		//销毁页面句柄并返回
+
+		free(pfPageHandle);
 		return SUCCESS;
 
 	}
