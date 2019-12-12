@@ -608,7 +608,9 @@ RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 	}
 }
 
-//未测试
+//最后测试时间：2019/12/12 11:20
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 {
 

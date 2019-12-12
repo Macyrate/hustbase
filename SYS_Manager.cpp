@@ -48,6 +48,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	RM_OpenFile("abc", handle);
 	char dummyData[32] = "Hello, world!\0";
 	char dummyData2[32] = "Hakurei Reimu\0";
+	char dummyData3[32] = "Kochiya Sanae\0";
 	RID* rid = (RID*)malloc(sizeof(RID));
 	RC insertRC;
 	for (int i = 0; i < 200; i++)
@@ -64,6 +65,18 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	for (int i = 0; i < 200; i++)
 	{
 		insertRC = InsertRec(handle, dummyData2, rid);
+	}
+	free(rid);
+	rid = (RID*)malloc(sizeof(RID));
+	for (int i = 0; i < 20; i++)
+	{
+		RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
+		rec->bValid = false;
+		rec->pData = (char*)dummyData3;
+		rec->rid.pageNum = 3;
+		rec->rid.slotNum = i;
+		UpdateRec(handle, rec);
+		free(rec);
 	}
 	RM_CloseFile(handle);
 	/*--------------------------------------------------------------------*/
