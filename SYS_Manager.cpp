@@ -86,8 +86,8 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 RC execute(char* sql) {
 	sqlstr* sql_str = NULL;
 	RC rc;
-	sql_str = get_sqlstr();
-	rc = parse(sql, sql_str);//只有两种返回结果SUCCESS和SQL_SYNTAX
+	sql_str = get_sqlstr();//为sql_str分配空间
+	rc = parse(sql, sql_str);//语法分析，结果放在sql_str中。只有两种返回结果SUCCESS和SQL_SYNTAX（语法错误）
 
 	if (rc == SUCCESS)
 	{
@@ -141,7 +141,12 @@ RC execute(char* sql) {
 	}
 }
 
+//这些在HustBase.cpp里调用，未完成
 RC CreateDB(char* dbpath, char* dbname) {
+	/*RC rc;
+	SetCurrentDirectory(dbpath);
+	RM_CreateFile("SYSTABLES", sizeof(SysTable));
+	return rc;*/
 	return SUCCESS;
 }
 
