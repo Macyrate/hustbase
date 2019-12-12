@@ -18,7 +18,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 	return SUCCESS;
 }
 
-//最后测试时间：2019/12/12
+//最后测试时间：2019/12/12 10:55
 //最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
@@ -283,7 +283,9 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 	}
 }
 
-//未测试
+//最后测试时间：2019/12/12 10:55
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 {
 
@@ -578,6 +580,11 @@ RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 		//将首个有空位的页面设置为此页面
 
 		fileHandle->firstEmptyPage = rid->pageNum;
+
+		//将此页面的首个空槽位设置为刚清除的槽位
+
+		short* firstEmptySlot = (short*)(char*)targetPageHandle->pFrame->page.pData;
+		*firstEmptySlot = rid->slotNum;
 
 		//标记脏页面并Unpin
 
