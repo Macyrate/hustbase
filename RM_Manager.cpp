@@ -18,7 +18,9 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 	return SUCCESS;
 }
 
-//未测试
+//最后测试时间：2019/12/12
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 {
 
@@ -156,6 +158,12 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 			fileHandle->pFirstRecord->slotNum = retRID->slotNum;
 			fileHandle->pFirstRecord->bValid = true;
 
+			//将新记录的父亲设置为（-1，-1）
+
+			short* targetSlotPrevious = (short*)targetSlot;
+			targetSlotPrevious[0] = -1;
+			targetSlotPrevious[1] = -1;
+
 		}
 		else
 		{
@@ -178,47 +186,11 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 				oldLastRecordNext[0] = retRID->pageNum;
 				oldLastRecordNext[1] = retRID->slotNum;
 
-				//将新记录的父亲设置为原先原先最后的有效记录
+				//将新记录的父亲设置为原先最后的有效记录
 
 				short* targetSlotPrevious = (short*)targetSlot;
 				targetSlotPrevious[0] = fileHandle->pLastRecord->pageNum;
 				targetSlotPrevious[1] = fileHandle->pLastRecord->slotNum;
-
-				//将空位指针指向下一个空位
-
-				short* targetSlotNext = (short*)(targetSlot + fileHandle->recordSize + 4);
-
-				if (targetSlotNext[0] != pfPageHandle->pFrame->page.pageNum)
-				{
-
-					//下一个空位不再位于此页面上
-
-					*firstEmptySlotOfPage = -1;
-					fileHandle->firstEmptyPage = targetSlotNext[0];
-
-				}
-				else if (targetSlotNext[0] != -1)
-				{
-
-					//下一个空位仍然位于此页面上
-
-					*firstEmptySlotOfPage = targetSlotNext[1];
-
-				}
-				else
-				{
-
-					//没有空位了
-
-					*firstEmptySlotOfPage = -1;
-					fileHandle->firstEmptyPage = -1;
-
-				}
-
-				//将新纪录的下一个指针指向（-1，-1）
-
-				targetSlotNext[0] = -1;
-				targetSlotNext[1] = -1;
 
 				//更新最后有效记录信息
 
@@ -248,14 +220,51 @@ RC InsertRec(RM_FileHandle* fileHandle, char* pData, RID* rid)
 			}
 		}
 
+		//将空位指针指向下一个空位
+
+		short* targetSlotNext = (short*)(targetSlot + fileHandle->recordSize + 4);
+
+		if (targetSlotNext[0] != pfPageHandle->pFrame->page.pageNum)
+		{
+
+			//下一个空位不再位于此页面上
+
+			*firstEmptySlotOfPage = -1;
+			fileHandle->firstEmptyPage = targetSlotNext[0];
+
+		}
+		else if (targetSlotNext[0] != -1)
+		{
+
+			//下一个空位仍然位于此页面上
+
+			*firstEmptySlotOfPage = targetSlotNext[1];
+
+		}
+		else
+		{
+
+			//没有空位了
+
+			*firstEmptySlotOfPage = -1;
+			fileHandle->firstEmptyPage = -1;
+
+		}
+
+		//将新纪录的下一个指针指向（-1，-1）
+
+		targetSlotNext[0] = -1;
+		targetSlotNext[1] = -1;
+
 		//标记藏页面，Unpin
 
 		MarkDirty(pfPageHandle);
 		UnpinPage(pfPageHandle);
 
-		//销毁页面句柄并返回
+		//销毁页面句柄，添加标记并返回
 
 		free(pfPageHandle);
+		retRID->bValid = true;
 		return SUCCESS;
 
 	}

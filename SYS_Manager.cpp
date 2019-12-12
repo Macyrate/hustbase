@@ -46,11 +46,13 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//RM_CreateFile("abc", 32);
 	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	RM_OpenFile("abc", handle);
-	handle->firstEmptyPage = 2;
-	handle->pFirstRecord->pageNum = 34;
-	handle->pFirstRecord->slotNum = 35;
-	handle->pLastRecord->pageNum = 11;
-	handle->pLastRecord->slotNum = 12;
+	char dummyData[32] = "Hello, world!\0";
+	RID* rid = (RID*)malloc(sizeof(RID));
+	RC insertRC;
+	for (int i = 0; i < 200; i++)
+	{
+		insertRC = InsertRec(handle, dummyData, rid);
+	}
 	RM_CloseFile(handle);
 	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);
