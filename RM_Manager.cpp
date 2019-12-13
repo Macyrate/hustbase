@@ -3,9 +3,32 @@
 #include "str.h"
 #include "PF_Manager.h"
 
+//未测试
 RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con* conditions)//初始化扫描
 {
-	return SUCCESS;
+
+	//检查fileHandle的状态
+
+	if (fileHandle->bOpen == false)
+	{
+		return RM_FHCLOSED;
+	}
+
+	//避免修改rmFileScan的地址值
+
+	RM_FileScan* retRMFileScan = rmFileScan;
+
+	retRMFileScan->pRMFileHandle = fileHandle;
+	retRMFileScan->conNum = conNum;
+	retRMFileScan->conditions = conditions;
+
+	retRMFileScan->pn = 2;
+	retRMFileScan->sn = 0;
+
+	//标记打开状态
+
+	retRMFileScan->bOpen = true;
+
 }
 
 RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
