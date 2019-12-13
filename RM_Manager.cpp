@@ -13,7 +13,9 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 	return SUCCESS;
 }
 
-//未测试
+//最后测试时间：2019/12/13 8:26
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 {
 
@@ -26,7 +28,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 
 	//检查槽位号
 
-	if (rid->slotNum >= fileHandle->recordPerPage)
+	if (rid->slotNum >= fileHandle->recordPerPage || rid->slotNum < 0)
 	{
 		return RM_INVALIDRID;
 	}
@@ -48,7 +50,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 		//获取页面成功
 		//检查槽位是否为空
 
-		char* targetSlot = (char*)targetPageHandle->pFrame->page.pData + rec->rid.slotNum * (fileHandle->recordSize + 8) + 2;
+		char* targetSlot = (char*)targetPageHandle->pFrame->page.pData + rid->slotNum * (fileHandle->recordSize + 8) + 2;
 		short* targetSlotPrevious = (short*)targetSlot;
 
 		if (targetSlotPrevious[0] == 0)
@@ -387,7 +389,7 @@ RC DeleteRec(RM_FileHandle* fileHandle, const RID* rid)
 
 	//检查槽位号
 
-	if (rid->slotNum >= fileHandle->recordPerPage)
+	if (rid->slotNum >= fileHandle->recordPerPage || rid->slotNum < 0)
 	{
 		return RM_INVALIDRID;
 	}
@@ -712,7 +714,7 @@ RC UpdateRec(RM_FileHandle* fileHandle, const RM_Record* rec)
 
 	//检查槽位号
 
-	if (rec->rid.slotNum >= fileHandle->recordPerPage)
+	if (rec->rid.slotNum >= fileHandle->recordPerPage || rec->rid.slotNum < 0)
 	{
 		return RM_INVALIDRID;
 	}

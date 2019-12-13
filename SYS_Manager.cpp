@@ -79,6 +79,12 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 		UpdateRec(handle, rec);
 		free(rec);
 	}
+	free(rid);
+	rid = (RID*)malloc(sizeof(RID));
+	rid->pageNum = 2;
+	rid->slotNum = 32;
+	RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
+	GetRec(handle, rid, rec);
 	RM_CloseFile(handle);
 	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);
