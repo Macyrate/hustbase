@@ -174,6 +174,7 @@ RC execute(char* sql) {
 }
 
 //以下这些需要在HustBase.cpp里调用，未完成
+//创建数据库
 RC CreateDB(char* dbpath, char* dbname) {
 	RC rc;
 	SetCurrentDirectory(dbpath);//转到数据库目录
@@ -181,22 +182,37 @@ RC CreateDB(char* dbpath, char* dbname) {
 	strcpy(newdbpath, dbpath);
 	strcat(newdbpath, "\\");
 	strcat(newdbpath, dbname);
-	CreateDirectory(newdbpath, NULL);
+	if (PathIsDirectoryA(newdbpath)) {	//如果要创建的数据库名已经存在，返回SQL_SYNTAX
+		return SQL_SYNTAX;
+	}
+	CreateDirectory(newdbpath, NULL);	//创建数据库文件夹
 	SetCurrentDirectory(newdbpath);
-	rc = RM_CreateFile("SYSTABLES", 25);//创建SYSTABLES系统表文件，每条记录长度为21+4=25
+	rc = RM_CreateFile("SYSTABLES", 25);	//创建SYSTABLES系统表文件，每条记录长度为21+4=25
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
-	rc = RM_CreateFile("SYSCOLUMNS", 76);//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
+	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
+	SetCurrentDirectory("..");	//操作完成，回到上级文件夹
 	return SUCCESS;
-
 }
 
+//删除数据库
 RC DropDB(char* dbname) {
-	return SUCCESS;
+	RC rc;
+	if (PathIsDirectoryA(dbname)) {		//判断文件夹是否存在
+		char systablespath[256];
+		strcpy(systablespath, dbname);
+		if (PathFileExistsA(strcat(systablespath, "\\SYSTABLES"))) {	//通过文件夹里是否存在SYSTABLES判断是否是数据库文件夹
+			char removestr[265] = "rd /s /q ";
+			strcat(removestr, dbname);
+			system(removestr);		//构造一条递归删除命令，删除数据库文件夹
+			return SUCCESS;
+		}
+	}
+	return SQL_SYNTAX;	//任意条件不满足，则返回SQL_SYNTAX
 }
 
 RC OpenDB(char* dbname) {

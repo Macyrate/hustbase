@@ -164,9 +164,9 @@ void CHustBaseApp::OnAppAbout()
 void CHustBaseApp::OnCreateDB()
 {
 	//关联创建数据库按钮，此处应提示用户输入数据库的存储路径和名称，并调用CreateDB函数创建数据库。
-	char dbpath[] = "C:\\GitHub";
+	/*char dbpath[] = "C:\\GitHub";	//测试用
 	char dbname[] = "TestDB";
-	CreateDB(dbpath, dbname);
+	CreateDB(dbpath, dbname);*/
 }
 
 void CHustBaseApp::OnOpenDB() 
@@ -177,4 +177,6 @@ void CHustBaseApp::OnOpenDB()
 void CHustBaseApp::OnDropDb() 
 {
 	//关联删除数据库按钮，此处应提示用户输入数据库所在位置，并调用DropDB函数删除数据库的内容。
+	/*char dbpath[] = "C:\\GitHub\\TestDB";	//测试用
+	DropDB(dbpath);*/
 }
