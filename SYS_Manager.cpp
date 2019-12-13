@@ -4,6 +4,7 @@
 #include "QU_Manager.h"
 #include "RM_Manager.h"
 #include <iostream>
+#include "string.h"
 
 void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
@@ -166,13 +167,26 @@ RC execute(char* sql) {
 	}
 }
 
-//这些在HustBase.cpp里调用，未完成
+//以下这些需要在HustBase.cpp里调用，未完成
 RC CreateDB(char* dbpath, char* dbname) {
-	/*RC rc;
-	SetCurrentDirectory(dbpath);
-	RM_CreateFile("SYSTABLES", sizeof(SysTable));
-	return rc;*/
+	RC rc;
+	SetCurrentDirectory(dbpath);//转到数据库目录
+	char newdbpath[256];
+	strcpy(newdbpath, dbpath);
+	strcat(newdbpath, "\\");
+	strcat(newdbpath, dbname);
+	CreateDirectory(newdbpath, NULL);
+	SetCurrentDirectory(newdbpath);
+	rc = RM_CreateFile("SYSTABLES", 25);//创建SYSTABLES系统表文件，每条记录长度为21+4=25
+	if (rc != SUCCESS) {
+		return SQL_SYNTAX;
+	}
+	rc = RM_CreateFile("SYSCOLUMNS", 76);//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
+	if (rc != SUCCESS) {
+		return SQL_SYNTAX;
+	}
 	return SUCCESS;
+
 }
 
 RC DropDB(char* dbname) {
