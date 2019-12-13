@@ -13,9 +13,98 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 	return SUCCESS;
 }
 
+//未测试
 RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 {
-	return SUCCESS;
+
+	//检查fileHandle的状态
+
+	if (fileHandle->bOpen == false)
+	{
+		return RM_FHCLOSED;
+	}
+
+	//检查槽位号
+
+	if (rid->slotNum >= fileHandle->recordPerPage)
+	{
+		return RM_INVALIDRID;
+	}
+
+	//避免修改rec的地址值
+
+	RM_Record* retRec = rec;
+
+	//打开rid所指示的页面
+
+	PF_PageHandle* targetPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	targetPageHandle->bOpen = false;
+
+	RC getTargetPageRC = GetThisPage(fileHandle->pPFFileHandle, rid->pageNum, targetPageHandle);
+
+	if (getTargetPageRC == SUCCESS)
+	{
+
+		//获取页面成功
+		//检查槽位是否为空
+
+		char* targetSlot = (char*)targetPageHandle->pFrame->page.pData + rec->rid.slotNum * (fileHandle->recordSize + 8) + 2;
+		short* targetSlotPrevious = (short*)targetSlot;
+
+		if (targetSlotPrevious[0] == 0)
+		{
+
+			//这是个空槽位，无法获取
+			//Unpin页面
+
+			UnpinPage(targetPageHandle);
+
+			//释放资源并返回错误信息
+
+			free(targetPageHandle);
+			return RM_INVALIDRID;
+
+		}
+		else
+		{
+
+			//这不是空槽位，可以获取
+
+			char* targetSlotData = targetSlot + 4;
+
+			//填充传出的对象
+
+			retRec->rid.pageNum = rid->pageNum;
+			retRec->rid.slotNum = rid->slotNum;
+			retRec->rid.bValid = true;
+
+			retRec->pData = (char*)malloc(fileHandle->recordSize * sizeof(char));
+
+			for (int i = 0; i < fileHandle->recordSize; i++)
+			{
+				retRec->pData[i] = targetSlotData[i];
+			}
+
+			//Unpin页面
+
+			UnpinPage(targetPageHandle);
+
+			//释放资源并返回
+
+			free(targetPageHandle);
+			return SUCCESS;
+
+		}
+	}
+	else
+	{
+
+		//释放资源并返回错误信息
+
+		free(targetPageHandle);
+		return getTargetPageRC;
+
+	}
 }
 
 //最后测试时间：2019/12/12 10:55
