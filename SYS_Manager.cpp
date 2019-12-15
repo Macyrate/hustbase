@@ -191,7 +191,8 @@ RC CreateDB(char* dbpath, char* dbname) {
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
-	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
+	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为
+	\21*3+4*3+1=76
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
@@ -215,12 +216,34 @@ RC DropDB(char* dbname) {
 	return SQL_SYNTAX;	//任意条件不满足，则返回SQL_SYNTAX
 }
 
+//打开数据库，未完成
 RC OpenDB(char* dbname) {
-	return SUCCESS;
+	RC rc;
+	if (PathIsDirectoryA(dbname)) {		//判断文件夹是否存在
+		char systablespath[256];
+		strcpy(systablespath, dbname);
+		if (PathFileExistsA(strcat(systablespath, "\\SYSTABLES"))) {	//通过文件夹里是否存在SYSTABLES判断是否是数据库文件夹
+			SetCurrentDirectory(dbname);	//切换工作目录到数据库文件夹
+			return SUCCESS;
+		}
+	}
+	return SQL_SYNTAX;
 }
 
 
 RC CloseDB() {
+	//RC rc;
+	//char* dbname[256];
+	////GetCurrentDirectory();
+	//if (PathIsDirectoryA(dbname)) {		//判断文件夹是否存在
+	//	char systablespath[256];
+	//	strcpy(systablespath, dbname);
+	//	if (PathFileExistsA(strcat(systablespath, "\\SYSTABLES"))) {	//通过文件夹里是否存在SYSTABLES判断是否是数据库文件夹
+	//		SetCurrentDirectory(dbname);	//切换工作目录到数据库文件夹
+	//		return SUCCESS;
+	//	}
+	//}
+	//return SQL_SYNTAX;
 	return SUCCESS;
 }
 
@@ -229,4 +252,12 @@ bool CanButtonClick() {//需要重新实现
 	return true;
 	//如果当前没有数据库打开
 	//return false;
+}
+
+//创建一个名为relName的表。
+//参数attrCount表示关系中属性的数量（取值为1到MAXATTRS之间）。
+//参数attributes是一个长度为attrCount的数组。
+//对于新关系中第i个属性，attributes数组中的第i个元素包含名称、类型和属性的长度（见AttrInfo结构定义）。
+RC CreateTable(char* relName, int attrCount, AttrInfo* attributes) {
+	return SUCCESS;
 }
