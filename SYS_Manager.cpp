@@ -191,8 +191,7 @@ RC CreateDB(char* dbpath, char* dbname) {
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
-	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为
-	\21*3+4*3+1=76
+	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
 	if (rc != SUCCESS) {
 		return SQL_SYNTAX;
 	}
