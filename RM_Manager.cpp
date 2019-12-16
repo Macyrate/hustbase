@@ -38,7 +38,7 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 
 }
 
-//未测试
+//未完成条件判断
 RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 {
 
@@ -54,6 +54,8 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 	if (rmFileScan->pn == -1 &&
 		rmFileScan->sn == -1)
 	{
+		rec->pData = (char*)malloc(rmFileScan->pRMFileHandle->recordSize * sizeof(char));
+		rec->pData = "EOF\0";
 		return RM_NOMORERECINMEM;
 	}
 
@@ -81,8 +83,10 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 	if (rmFileScan->pn == rmFileScan->pRMFileHandle->pLastRecord->pageNum &&
 		rmFileScan->sn == rmFileScan->pRMFileHandle->pLastRecord->slotNum)
 	{
+
 		rmFileScan->pn = -1;
 		rmFileScan->sn = -1;
+
 	}
 	else
 	{
@@ -98,8 +102,8 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 
 }
 
-//最后测试时间：2019/12/13 8:26
-//最后测试状态：符合预期（已更改）
+//最后测试时间：2019/12/16 15:11
+//最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 {
@@ -158,7 +162,7 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 			//这不是空槽位，可以获取
 
 			char* targetSlotData = targetSlot + 4;
-			char* targetSlotNext = targetSlot + fileHandle->recordSize + 4;
+			short* targetSlotNext = (short*)(targetSlot + fileHandle->recordSize + 4);
 
 			//填充传出的对象
 
