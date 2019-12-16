@@ -3,7 +3,9 @@
 #include "str.h"
 #include "PF_Manager.h"
 
-//未测试
+//最后测试时间：2019/12/16 15:11
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con* conditions)//初始化扫描
 {
 
