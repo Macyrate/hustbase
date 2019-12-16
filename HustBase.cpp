@@ -178,8 +178,7 @@ void CHustBaseApp::OnCreateDB()
 void CHustBaseApp::OnOpenDB()
 {
 	//关联打开数据库按钮，此处应提示用户输入数据库所在位置，并调用OpenDB函数改变当前数据库路径，并在界面左侧的控件中显示数据库中的表、列信息。
-	//IFileDialog接口实现打开文件夹对话框
-	IFileDialog* pfd = NULL;
+	IFileDialog* pfd = NULL;	//用IFileDialog接口实现打开文件夹对话框
 	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog,
 		NULL,
 		CLSCTX_INPROC_SERVER,
@@ -196,9 +195,20 @@ void CHustBaseApp::OnOpenDB()
 				LPWSTR folderPath = NULL;
 				if (SUCCEEDED(psi->GetDisplayName(SIGDN_FILESYSPATH, &folderPath))) {	//获取选择的文件夹路径，类型为PWSTR
 					std::string stringOfFolderPath = CW2A(folderPath);
-					AfxMessageBox(stringOfFolderPath.c_str());	//转换为AfxMessageBox接受的LPCTSTR
+					//AfxMessageBox(stringOfFolderPath.c_str());	//转换为AfxMessageBox接受的LPCTSTR
+					SetCurrentDirectory(stringOfFolderPath.c_str());	//转到选择的文件夹路径
+					CFileFind fileFind;
+					BOOL isSystablesExist = fileFind.FindFile("SYSTABLES");		//检查选择的文件夹是否是数据库
+					BOOL isColumnsExist = fileFind.FindFile("SYSCOLUMNS");
+					if (isSystablesExist && isColumnsExist) {
+						//在此处实现开启数据库后的操作，界面显示啥的，暂时懒得写
+					}
+					else {
+						AfxMessageBox("该文件夹不是合法的数据库！");
+					}
 				}
 			}
+			psi->Release();
 		}
 		pfd->Release();
 	}
