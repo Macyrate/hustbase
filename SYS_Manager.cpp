@@ -44,7 +44,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//	return;
 	//}
 	/*--------------------以下代码为测试RM_Manager，无实际意义--------------------*/
-	RM_CreateFile("abc", 32);
+	//RM_CreateFile("abc", 32);
 	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	RM_OpenFile("abc", handle);
 	char dummyData[32] = "Hello, world!\0";
@@ -52,39 +52,40 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	char dummyData3[32] = "Kochiya Sanae\0";
 	RID* rid = (RID*)malloc(sizeof(RID));
 	RC insertRC;
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		insertRC = InsertRec(handle, dummyData, rid);
 	}
 	free(rid);
 	rid = (RID*)malloc(sizeof(RID));
-	rid->pageNum = 2;
-	rid->slotNum = 32;
-	DeleteRec(handle, rid);
-	free(rid);
-	rid = (RID*)malloc(sizeof(RID));
-	for (int i = 0; i < 200; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		insertRC = InsertRec(handle, dummyData2, rid);
 	}
 	free(rid);
 	rid = (RID*)malloc(sizeof(RID));
-	for (int i = 0; i < 20; i++)
+	for (int i = 5; i < 11; i++)
 	{
 		RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
 		rec->bValid = false;
 		rec->pData = (char*)dummyData3;
-		rec->rid.pageNum = 3;
+		rec->rid.pageNum = 2;
 		rec->rid.slotNum = i;
 		UpdateRec(handle, rec);
 		free(rec);
 	}
 	free(rid);
-	rid = (RID*)malloc(sizeof(RID));
-	rid->pageNum = 2;
-	rid->slotNum = 32;
-	RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
-	GetRec(handle, rid, rec);
+	RM_FileScan* scan = (RM_FileScan*)malloc(sizeof(RM_FileScan));
+	OpenScan(scan, handle, 0, NULL);
+	RC rc1 = SUCCESS;
+	while (rc1 == SUCCESS)
+	{
+		RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
+		rc1 = GetNextRec(scan, rec);
+		AfxMessageBox(rec->pData);
+		free(rec);
+	}
+	free(scan);
 	RM_CloseFile(handle);
 	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);

@@ -3,7 +3,9 @@
 #include "str.h"
 #include "PF_Manager.h"
 
-//未测试
+//最后测试时间：2019/12/16 15:11
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con* conditions)//初始化扫描
 {
 
@@ -14,6 +16,13 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 		return RM_FHCLOSED;
 	}
 
+	//检查FileScan的状态
+
+	if (rmFileScan->bOpen == true)
+	{
+		return RM_FSOPEN;
+	}
+
 	//避免修改rmFileScan的地址值
 
 	RM_FileScan* retRMFileScan = rmFileScan;
@@ -22,8 +31,8 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 	retRMFileScan->conNum = conNum;
 	retRMFileScan->conditions = conditions;
 
-	retRMFileScan->pn = 2;
-	retRMFileScan->sn = 0;
+	retRMFileScan->pn = fileHandle->pFirstRecord->pageNum;
+	retRMFileScan->sn = fileHandle->pFirstRecord->slotNum;
 
 	//标记打开状态
 
@@ -31,12 +40,304 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 
 }
 
+//未测试条件判断
 RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 {
+
+	//检查FileScan的状态
+
+	if (rmFileScan->bOpen == false)
+	{
+		return RM_FSCLOSED;
+	}
+
+	//重新开始
+
+GetNextRec_REDO:
+
+	//检查是否还有记录存余
+
+	if (rmFileScan->pn == -1 &&
+		rmFileScan->sn == -1)
+	{
+
+		rec->pData = (char*)malloc(rmFileScan->pRMFileHandle->recordSize * sizeof(char));
+		rec->pData = "EOF\0";
+		return RM_NOMORERECINMEM;
+
+	}
+
+	//获取对应的记录
+
+	RID* rid = (RID*)malloc(sizeof(RID));
+
+	rid->pageNum = rmFileScan->pn;
+	rid->slotNum = rmFileScan->sn;
+
+	RC getRecRC = GetRec(rmFileScan->pRMFileHandle, rid, rec);
+
+	//销毁用于获取记录的RID
+	free(rid);
+
+	//检查操作是否成功
+
+	if (getRecRC != SUCCESS)
+	{
+		return getRecRC;
+	}
+
+	//检查记录是否是最后一条有效记录
+
+	if (rmFileScan->pn == rmFileScan->pRMFileHandle->pLastRecord->pageNum &&
+		rmFileScan->sn == rmFileScan->pRMFileHandle->pLastRecord->slotNum)
+	{
+
+		rmFileScan->pn = -1;
+		rmFileScan->sn = -1;
+
+	}
+	else
+	{
+
+		//将下一条记录的位置储存于pn和sn中
+
+		rmFileScan->pn = rec->nextRid.pageNum;
+		rmFileScan->sn = rec->nextRid.slotNum;
+
+	}
+
+	//进行条件判断
+
+	for (int i = 0; i < rmFileScan->conNum; i++)
+	{
+
+		//对于每个Condition
+
+		Con condition = rmFileScan->conditions[i];
+
+		//定义用于储存临时结论的字段
+
+		bool equal, less, greater, lessEqual, greaterEqual;
+
+		switch (condition.attrType)
+		{
+
+		case chars:
+
+			//需要比较的是字符（串）
+			//分别生成左右字符串以便于比较
+
+			char* leftChars = (char*)malloc(sizeof(char) * (condition.LattrLength + 1));
+			leftChars[condition.LattrLength] = '\0';
+
+			char* rightChars = (char*)malloc(sizeof(char) * (condition.RattrLength + 1));
+			rightChars[condition.RattrLength] = '\0';
+
+			//将数据填充进去
+			//判断左边是属性还是值
+
+			if (condition.bLhsIsAttr == 1)
+			{
+
+				//左边是属性
+				//将内容拷贝进待比较的区域
+
+				for (int i = 0; i < condition.LattrLength; i++)
+				{
+					leftChars[i] = rec->pData[i + condition.LattrOffset];
+				}
+
+			}
+			else
+			{
+
+				//左边是值
+				//将值拷贝进待比较的区域
+
+				for (int i = 0; i < condition.LattrLength; i++)
+				{
+					leftChars[i] = ((char*)condition.Lvalue)[i];
+				}
+
+			}
+
+			//判断右边是属性还是值
+
+			if (condition.bRhsIsAttr == 1)
+			{
+
+				//右边是属性
+				//将内容拷贝进待比较的区域
+
+				for (int i = 0; i < condition.RattrLength; i++)
+				{
+					rightChars[i] = rec->pData[i + condition.RattrOffset];
+				}
+
+			}
+			else
+			{
+
+				//右边是值
+				//将值拷贝进待比较的区域
+
+				for (int i = 0; i < condition.RattrLength; i++)
+				{
+					rightChars[i] = ((char*)condition.Rvalue)[i];
+				}
+
+			}
+
+			//进行比较
+
+			int cmpCharsRes = strcmp(leftChars, rightChars);
+
+			//释放资源
+
+			free(leftChars);
+			free(rightChars);
+
+			//临时结论
+
+			equal = cmpCharsRes == 0;
+			less = cmpCharsRes < 0;
+			greater = cmpCharsRes > 0;
+
+			break;
+
+		case ints:
+
+			//声明用于比较的左边和右边字段
+
+			int leftInt = 0;
+			int rightInt = 0;
+
+			//判断左边是属性还是值
+
+			if (condition.bLhsIsAttr == 1)
+			{
+
+				//左边是属性
+
+				char* leftTargetData = rec->pData + condition.LattrOffset;
+				leftInt = *(int*)leftTargetData;
+
+			}
+			else
+			{
+
+				//左边的是值
+
+				leftInt = *(int*)condition.Lvalue;
+
+			}
+
+			//判断右边是属性还是值
+
+			if (condition.bRhsIsAttr == 1)
+			{
+
+				//右边是属性
+
+				char* rightTargetData = rec->pData + condition.RattrOffset;
+				rightInt = *(int*)rightTargetData;
+
+			}
+			else
+			{
+
+				//右边的是值
+
+				rightInt = *(int*)condition.Rvalue;
+
+			}
+
+			//临时结论
+
+			equal = leftInt == rightInt;
+			less = leftInt < rightInt;
+			greater = leftInt > rightInt;
+
+			break;
+
+		case floats:
+
+			//声明用于比较的左边和右边字段
+
+			float leftFloat = 0.0f;
+			float rightFloat = 0.0f;
+
+
+			//判断左边是属性还是值
+
+			if (condition.bLhsIsAttr == 1)
+			{
+
+				//左边是属性
+
+				char* leftTargetData = rec->pData + condition.LattrOffset;
+				leftFloat = *(float*)leftTargetData;
+
+			}
+			else
+			{
+
+				//左边的是值
+
+				leftFloat = *(float*)condition.Lvalue;
+
+			}
+
+			//判断右边是属性还是值
+
+			if (condition.bRhsIsAttr == 1)
+			{
+
+				//右边是属性
+
+				char* rightTargetData = rec->pData + condition.RattrOffset;
+				rightFloat = *(float*)rightTargetData;
+
+			}
+			else
+			{
+
+				//右边的是值
+
+				rightFloat = *(float*)condition.Rvalue;
+
+			}
+
+			//临时结论
+
+			equal = leftFloat == rightFloat;
+			less = leftFloat < rightFloat;
+			greater = leftFloat > rightFloat;
+
+			break;
+
+		}
+
+		lessEqual = less || equal;
+		greaterEqual = greater || equal;
+
+		//所有不满足条件的情况
+
+		if ((equal && condition.compOp == NEqual) ||
+			(less && condition.compOp == GEqual) ||
+			(greater && condition.compOp == LEqual) ||
+			(lessEqual && condition.compOp == GreatT) ||
+			(greaterEqual && condition.compOp == LessT))
+		{
+			goto GetNextRec_REDO;
+		}
+	}
+
 	return SUCCESS;
+
 }
 
-//最后测试时间：2019/12/13 8:26
+//最后测试时间：2019/12/16 15:11
 //最后测试状态：符合预期
 //最后测试人：strangenameBC
 RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
@@ -96,12 +397,17 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 			//这不是空槽位，可以获取
 
 			char* targetSlotData = targetSlot + 4;
+			short* targetSlotNext = (short*)(targetSlot + fileHandle->recordSize + 4);
 
 			//填充传出的对象
 
 			retRec->rid.pageNum = rid->pageNum;
 			retRec->rid.slotNum = rid->slotNum;
 			retRec->rid.bValid = true;
+
+			retRec->nextRid.pageNum = targetSlotNext[0];
+			retRec->nextRid.slotNum = targetSlotNext[1];
+			retRec->nextRid.bValid = true;
 
 			retRec->pData = (char*)malloc(fileHandle->recordSize * sizeof(char));
 
