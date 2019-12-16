@@ -31,9 +31,10 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 
 }
 
+//未完工
 RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 {
-	return SUCCESS;
+
 }
 
 //最后测试时间：2019/12/13 8:26
@@ -96,12 +97,17 @@ RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 			//这不是空槽位，可以获取
 
 			char* targetSlotData = targetSlot + 4;
+			char* targetSlotNext = targetSlot + fileHandle->recordSize + 4;
 
 			//填充传出的对象
 
 			retRec->rid.pageNum = rid->pageNum;
 			retRec->rid.slotNum = rid->slotNum;
 			retRec->rid.bValid = true;
+
+			retRec->nextRid.pageNum = targetSlotNext[0];
+			retRec->nextRid.slotNum = targetSlotNext[1];
+			retRec->nextRid.bValid = true;
 
 			retRec->pData = (char*)malloc(fileHandle->recordSize * sizeof(char));
 
