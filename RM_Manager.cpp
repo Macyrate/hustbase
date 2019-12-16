@@ -14,6 +14,13 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 		return RM_FHCLOSED;
 	}
 
+	//检查FileScan的状态
+
+	if (rmFileScan->bOpen == true)
+	{
+		return RM_FSOPEN;
+	}
+
 	//避免修改rmFileScan的地址值
 
 	RM_FileScan* retRMFileScan = rmFileScan;
@@ -22,8 +29,8 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 	retRMFileScan->conNum = conNum;
 	retRMFileScan->conditions = conditions;
 
-	retRMFileScan->pn = 2;
-	retRMFileScan->sn = 0;
+	retRMFileScan->pn = fileHandle->pFirstRecord->pageNum;
+	retRMFileScan->sn = fileHandle->pFirstRecord->slotNum;
 
 	//标记打开状态
 
@@ -31,10 +38,63 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 
 }
 
-//未完工
+//未测试
 RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 {
 
+	//检查FileScan的状态
+
+	if (rmFileScan->bOpen == false)
+	{
+		return RM_FSCLOSED;
+	}
+
+	//检查是否还有记录存余
+
+	if (rmFileScan->pn == -1 &&
+		rmFileScan->sn == -1)
+	{
+		return RM_NOMORERECINMEM;
+	}
+
+	//获取对应的记录
+
+	RID* rid = (RID*)malloc(sizeof(RID));
+
+	rid->pageNum = rmFileScan->pn;
+	rid->slotNum = rmFileScan->sn;
+
+	RC getRecRC = GetRec(rmFileScan->pRMFileHandle, rid, rec);
+
+	//销毁用于获取记录的RID
+	free(rid);
+
+	//检查操作是否成功
+
+	if (getRecRC != SUCCESS)
+	{
+		return getRecRC;
+	}
+
+	//检查记录是否是最后一条有效记录
+
+	if (rmFileScan->pn == rmFileScan->pRMFileHandle->pLastRecord->pageNum &&
+		rmFileScan->sn == rmFileScan->pRMFileHandle->pLastRecord->slotNum)
+	{
+		rmFileScan->pn = -1;
+		rmFileScan->sn = -1;
+	}
+	else
+	{
+
+		//将下一条记录的位置储存于pn和sn中
+
+		rmFileScan->pn = rec->nextRid.pageNum;
+		rmFileScan->sn = rec->nextRid.slotNum;
+
+	}
+
+	return SUCCESS;
 }
 
 //最后测试时间：2019/12/13 8:26
