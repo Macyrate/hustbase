@@ -95,10 +95,11 @@ RC GetNextRec(RM_FileScan* rmFileScan, RM_Record* rec)
 	}
 
 	return SUCCESS;
+
 }
 
 //最后测试时间：2019/12/13 8:26
-//最后测试状态：符合预期
+//最后测试状态：符合预期（已更改）
 //最后测试人：strangenameBC
 RC GetRec(RM_FileHandle* fileHandle, RID* rid, RM_Record* rec)
 {
