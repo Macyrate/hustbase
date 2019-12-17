@@ -173,8 +173,13 @@ void CHustBaseApp::OnCreateDB()
 		AfxMessageBox("数据库创建成功！");
 	else
 		AfxMessageBox("数据库创建失败！");
+
+	AfxMessageBox("请选择");
 }
 
+//最后测试时间：2019/12/17 10:11
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 void CHustBaseApp::OnOpenDB()
 {
 	//关联打开数据库按钮，此处应提示用户输入数据库所在位置，并调用OpenDB函数改变当前数据库路径，并在界面左侧的控件中显示数据库中的表、列信息。
@@ -200,6 +205,9 @@ void CHustBaseApp::OnOpenDB()
 		AfxMessageBox("该文件夹不是合法的数据库！");
 }
 
+//最后测试时间：2019/12/17 10:11
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 void CHustBaseApp::OnDropDb()
 {
 	char* folderPath = GetFolderPath();		//选择数据库文件夹路径
@@ -224,6 +232,9 @@ void CHustBaseApp::OnDropDb()
 		AfxMessageBox("该文件夹不是合法的数据库！");
 }
 
+//最后测试时间：2019/12/17 10:11
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 char* CHustBaseApp::GetFolderPath() {
 	IFileDialog* pfd = NULL;	//用IFileDialog接口实现打开文件夹对话框
 	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog,

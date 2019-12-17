@@ -183,19 +183,16 @@ RC CreateDB(char* dbpath, char* dbname) {
 	strcpy(newdbpath, dbpath);
 	strcat(newdbpath, "\\");
 	strcat(newdbpath, dbname);
-	if (PathIsDirectoryA(newdbpath)) {	//如果要创建的数据库名已经存在，返回SQL_SYNTAX
+	if (PathIsDirectoryA(newdbpath))	//如果要创建的数据库名已经存在，返回SQL_SYNTAX
 		return SQL_SYNTAX;
-	}
 	CreateDirectory(newdbpath, NULL);	//创建数据库文件夹
 	SetCurrentDirectory(newdbpath);
 	rc = RM_CreateFile("SYSTABLES", 25);	//创建SYSTABLES系统表文件，每条记录长度为21+4=25
-	if (rc != SUCCESS) {
+	if (rc != SUCCESS)
 		return SQL_SYNTAX;
-	}
 	rc = RM_CreateFile("SYSCOLUMNS", 76);	//创建SYSCOLUMNS系统表文件，每条记录长度为21*3+4*3+1=76
-	if (rc != SUCCESS) {
+	if (rc != SUCCESS)
 		return SQL_SYNTAX;
-	}
 	SetCurrentDirectory("..");	//操作完成，回到上级文件夹
 	return SUCCESS;
 }
