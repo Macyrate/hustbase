@@ -178,6 +178,53 @@ void CHustBaseApp::OnCreateDB()
 void CHustBaseApp::OnOpenDB()
 {
 	//关联打开数据库按钮，此处应提示用户输入数据库所在位置，并调用OpenDB函数改变当前数据库路径，并在界面左侧的控件中显示数据库中的表、列信息。
+	char* folderPath = GetFolderPath();		//选择数据库文件夹路径
+	if (folderPath == NULL) {
+		AfxMessageBox("未选择数据库！");
+		return;
+	}
+
+	SetCurrentDirectory(folderPath);	//转到选择的文件夹路径
+	CFileFind fileFind;
+	BOOL isSystablesExist = fileFind.FindFile("SYSTABLES");		//检查选择的文件夹是否是数据库
+	BOOL isColumnsExist = fileFind.FindFile("SYSCOLUMNS");
+
+	if (isSystablesExist && isColumnsExist) {
+		SetCurrentDirectory("..");
+		if (OpenDB(folderPath) == SUCCESS)	//用OpenDB进行数据库启动时的工作
+			AfxMessageBox("数据库启动成功！");
+		else
+			AfxMessageBox("数据库启动失败！");
+	}
+	else
+		AfxMessageBox("该文件夹不是合法的数据库！");
+}
+
+void CHustBaseApp::OnDropDb()
+{
+	char* folderPath = GetFolderPath();		//选择数据库文件夹路径
+	if (folderPath == NULL) {
+		AfxMessageBox("未选择数据库！");
+		return;
+	}
+
+	SetCurrentDirectory(folderPath);	//转到选择的文件夹路径
+	CFileFind fileFind;
+	BOOL isSystablesExist = fileFind.FindFile("SYSTABLES");		//检查选择的文件夹是否是数据库
+	BOOL isColumnsExist = fileFind.FindFile("SYSCOLUMNS");
+
+	if (isSystablesExist && isColumnsExist) {
+		SetCurrentDirectory("..");
+		if (DropDB(folderPath) == SUCCESS)		//用DropDB进行数据库删除时的工作
+			AfxMessageBox("数据库删除成功！");
+		else
+			AfxMessageBox("数据库删除失败！");
+	}
+	else
+		AfxMessageBox("该文件夹不是合法的数据库！");
+}
+
+char* CHustBaseApp::GetFolderPath() {
 	IFileDialog* pfd = NULL;	//用IFileDialog接口实现打开文件夹对话框
 	HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog,
 		NULL,
@@ -195,31 +242,17 @@ void CHustBaseApp::OnOpenDB()
 				LPWSTR folderPath = NULL;
 				if (SUCCEEDED(psi->GetDisplayName(SIGDN_FILESYSPATH, &folderPath))) {	//获取选择的文件夹路径，类型为PWSTR
 					std::string stringOfFolderPath = CW2A(folderPath);
-					//AfxMessageBox(stringOfFolderPath.c_str());	//转换为AfxMessageBox接受的LPCTSTR
-					SetCurrentDirectory(stringOfFolderPath.c_str());	//转到选择的文件夹路径
-					CFileFind fileFind;
-					BOOL isSystablesExist = fileFind.FindFile("SYSTABLES");		//检查选择的文件夹是否是数据库
-					BOOL isColumnsExist = fileFind.FindFile("SYSCOLUMNS");
-					if (isSystablesExist && isColumnsExist) {
-						//在此处实现开启数据库后的操作，界面显示啥的，暂时懒得写
-					}
-					else {
-						AfxMessageBox("该文件夹不是合法的数据库！");
-					}
+					psi->Release();
+					pfd->Release();
+					const char* cstr = stringOfFolderPath.c_str();	//以const char*的字符串形式返回文件夹路径
+					char* toret = (char*)malloc((stringOfFolderPath.length() + 1) * sizeof(char));
+					strcpy(toret, cstr);
+					return toret;
 				}
 			}
 			psi->Release();
 		}
 		pfd->Release();
 	}
-}
-
-void CHustBaseApp::OnDropDb()
-{
-	//关联删除数据库按钮，此处应提示用户输入数据库所在位置，并调用DropDB函数删除数据库的内容。
-	char dbpath[] = "C:\\GitHub\\TestDB";	//测试用
-	if (DropDB(dbpath) == SUCCESS)
-		AfxMessageBox("数据库删除成功！");
-	else
-		AfxMessageBox("数据库删除失败！");
+	return NULL;
 }

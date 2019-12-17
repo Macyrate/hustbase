@@ -40,6 +40,7 @@ public:
 	afx_msg void OnCreateDB();
 	afx_msg void OnOpenDB();
 	afx_msg void OnDropDb();
+	afx_msg char* GetFolderPath();
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 };
