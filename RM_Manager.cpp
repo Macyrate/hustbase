@@ -119,18 +119,22 @@ GetNextRec_REDO:
 
 		bool equal, less, greater, lessEqual, greaterEqual;
 
+		char* leftChars = NULL;
+		char* rightChars = NULL;
+		int cmpCharsRes = 0, leftInt = 0, rightInt = 0;
+		float leftFloat = 0.0f, rightFloat = 0.0f;
+
 		switch (condition.attrType)
 		{
 
 		case chars:
 
-			//需要比较的是字符（串）
 			//分别生成左右字符串以便于比较
 
-			char* leftChars = (char*)malloc(sizeof(char) * (condition.LattrLength + 1));
+			leftChars = (char*)malloc(sizeof(char) * (condition.LattrLength + 1));
 			leftChars[condition.LattrLength] = '\0';
 
-			char* rightChars = (char*)malloc(sizeof(char) * (condition.RattrLength + 1));
+			rightChars = (char*)malloc(sizeof(char) * (condition.RattrLength + 1));
 			rightChars[condition.RattrLength] = '\0';
 
 			//将数据填充进去
@@ -190,7 +194,7 @@ GetNextRec_REDO:
 
 			//进行比较
 
-			int cmpCharsRes = strcmp(leftChars, rightChars);
+			cmpCharsRes = strcmp(leftChars, rightChars);
 
 			//释放资源
 
@@ -206,11 +210,6 @@ GetNextRec_REDO:
 			break;
 
 		case ints:
-
-			//声明用于比较的左边和右边字段
-
-			int leftInt = 0;
-			int rightInt = 0;
 
 			//判断左边是属性还是值
 
@@ -261,12 +260,6 @@ GetNextRec_REDO:
 			break;
 
 		case floats:
-
-			//声明用于比较的左边和右边字段
-
-			float leftFloat = 0.0f;
-			float rightFloat = 0.0f;
-
 
 			//判断左边是属性还是值
 
