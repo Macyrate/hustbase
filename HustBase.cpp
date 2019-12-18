@@ -167,14 +167,20 @@ void CHustBaseApp::OnAppAbout()
 void CHustBaseApp::OnCreateDB()
 {
 	//关联创建数据库按钮，此处应提示用户输入数据库的存储路径和名称，并调用CreateDB函数创建数据库。
-	char dbpath[] = "C:\\GitHub";	//测试用
-	char dbname[] = "TestDB";
-	if (CreateDB(dbpath, dbname) == SUCCESS)
-		AfxMessageBox("数据库创建成功！");
-	else
-		AfxMessageBox("数据库创建失败！");
 
-	AfxMessageBox("请选择");
+	//char dbpath[] = "C:\\GitHub";	//测试用
+	//char dbname[] = "TestDB";
+	//if (CreateDB(dbpath, dbname) == SUCCESS)
+	//	AfxMessageBox("数据库创建成功！");
+	//else
+	//	AfxMessageBox("数据库创建失败！");
+
+	if (AfxMessageBox("接下来请选择新建数据库的存储路径。", MB_OKCANCEL | MB_ICONINFORMATION | MB_DEFBUTTON1) == IDOK) {
+		char* folderPath = GetFolderPath();
+		if (AfxMessageBox("接下来请选择新建数据库的存储路径。", MB_OKCANCEL | MB_ICONINFORMATION | MB_DEFBUTTON1) == IDOK) {
+			//writehere...
+		}
+	}
 }
 
 //最后测试时间：2019/12/17 10:11
