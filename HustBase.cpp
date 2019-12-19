@@ -245,9 +245,8 @@ void CHustBaseApp::OnOpenDB()
 }
 
 //最后测试时间：2019/12/17 10:11
-//最后测试状态：符合预期
+//最后测试状态：符合预期，还需要实现在数据库打开时不允许删除
 //最后测试人：Macyrate
-//注：还需要实现在数据库打开时不允许删除
 void CHustBaseApp::OnDropDb()
 {
 	char* folderPath = GetFolderPath();		//选择数据库文件夹路径

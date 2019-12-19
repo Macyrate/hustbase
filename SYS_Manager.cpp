@@ -145,6 +145,8 @@ RC execute(char* sql) {
 
 		case 5:
 			//判断SQL语句为createTable语句
+			CreateTable(sql_str->sstr.cret.relName, sql_str->sstr.cret.attrCount, sql_str->sstr.cret.attributes);
+			//pDoc->m_pTreeView->PopulateTree();	//更新视图
 			break;
 
 		case 6:
@@ -161,10 +163,13 @@ RC execute(char* sql) {
 
 		case 9:
 			//判断为help语句，可以给出帮助提示
+			AfxMessageBox("RTFM!");
+			system("start https://gitee.com/strangenamebc/hustbase");
 			break;
 
 		case 10:
 			//判断为exit语句，可以由此进行退出操作
+			AfxGetMainWnd()->SendMessage(WM_CLOSE);		//关闭窗口
 			break;
 		}
 	}
@@ -174,8 +179,11 @@ RC execute(char* sql) {
 	}
 }
 
-//以下这些需要在HustBase.cpp里调用，未完成
+////////////////////////////////////////////////////////////////////////////
 //创建数据库
+//最后测试时间：2019/12/19 17:57
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 RC CreateDB(char* dbpath, char* dbname) {
 	RC rc;
 	SetCurrentDirectory(dbpath);//转到数据库目录
@@ -198,6 +206,9 @@ RC CreateDB(char* dbpath, char* dbname) {
 }
 
 //删除数据库
+//最后测试时间：2019/12/17 10:11
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 RC DropDB(char* dbname) {
 	RC rc;
 	if (PathIsDirectoryA(dbname)) {		//判断文件夹是否存在
@@ -227,7 +238,7 @@ RC OpenDB(char* dbname) {
 	return SQL_SYNTAX;
 }
 
-
+//关闭数据库，未完成
 RC CloseDB() {
 	//RC rc;
 	//char* dbname[256];
@@ -241,6 +252,44 @@ RC CloseDB() {
 	//	}
 	//}
 	//return SQL_SYNTAX;
+	return SUCCESS;
+}
+
+//创建数据表,未完成
+RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
+{
+	//typedef struct _ AttrInfo AttrInfo;
+	//struct _AttrInfo {
+	//char			*attrName;			// 属性名
+	//AttrType	attrType;			// 属性类型
+	//int			attrLength;			// 属性长度
+	//};
+
+	RC rc;
+	RM_FileHandle* hSystables, * hSyscolumns;
+	RID* rid;
+	int recordsize = 0;//每条记录的大小
+
+	//打开系统表文件
+	hSystables = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
+	hSystables->bOpen = false;
+	hSyscolumns = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
+	hSyscolumns->bOpen = false;
+	rid = (RID*)malloc(sizeof(RID));
+	rid->bValid = false;
+
+	rc = RM_OpenFile("SYSTABLES", hSystables);
+	if (rc != SUCCESS)
+		return rc;
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS)
+		return rc;
+
+	//code here...
+
+	free(hSyscolumns);
+	free(hSystables);
+
 	return SUCCESS;
 }
 
