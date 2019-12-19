@@ -162,23 +162,56 @@ void CHustBaseApp::OnAppAbout()
 }
 
 /////////////////////////////////////////////////////////////////////////////
+// CInputDlg dialog used for Creating Database
+class CInputDlg : public CDialog
+{
+public:
+	CInputDlg();
+	CString dbName;
+	enum {IDD = IDD_INPUTBOX };
+	DECLARE_MESSAGE_MAP()
+	afx_msg void OnBnClickedOk();
+};
+
+CInputDlg::CInputDlg() : CDialog(CInputDlg::IDD)
+{
+	//{{AFX_DATA_INIT(CAboutDlg)
+	//}}AFX_DATA_INIT
+}
+
+BEGIN_MESSAGE_MAP(CInputDlg, CDialog)
+	ON_BN_CLICKED(IDOK, &CInputDlg::OnBnClickedOk)
+END_MESSAGE_MAP()
+
+void CInputDlg::OnBnClickedOk()
+{
+	CEdit* dbNameBox;
+	dbNameBox = (CEdit*)GetDlgItem(IDC_EDIT1);	//获取输入框内容
+	dbNameBox->GetWindowTextA(dbName);
+	EndDialog(IDOK);		//以IDOK方式关闭对话框
+}
+
+/////////////////////////////////////////////////////////////////////////////
 // CHustBaseApp message handlers
 
+//最后测试时间：2019/12/19 17:57
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 void CHustBaseApp::OnCreateDB()
 {
 	//关联创建数据库按钮，此处应提示用户输入数据库的存储路径和名称，并调用CreateDB函数创建数据库。
-
-	//char dbpath[] = "C:\\GitHub";	//测试用
-	//char dbname[] = "TestDB";
-	//if (CreateDB(dbpath, dbname) == SUCCESS)
-	//	AfxMessageBox("数据库创建成功！");
-	//else
-	//	AfxMessageBox("数据库创建失败！");
-
 	if (AfxMessageBox("接下来请选择新建数据库的存储路径。", MB_OKCANCEL | MB_ICONINFORMATION | MB_DEFBUTTON1) == IDOK) {
 		char* folderPath = GetFolderPath();
-		if (AfxMessageBox("接下来请选择新建数据库的存储路径。", MB_OKCANCEL | MB_ICONINFORMATION | MB_DEFBUTTON1) == IDOK) {
-			//writehere...
+		if (folderPath){	//确保folderPath合法
+			CInputDlg inputDlg;
+			if (inputDlg.DoModal() == IDOK && inputDlg.dbName)		//输入了数据库名称并点击了确定
+			{
+				if (CreateDB(folderPath, inputDlg.dbName.GetBuffer()) == SUCCESS)		//创建数据库
+					AfxMessageBox("数据库创建成功！");
+				else 
+					AfxMessageBox("数据库创建失败！");
+			}
+			inputDlg.DestroyWindow();		//创建结束，销毁窗口
 		}
 	}
 }
@@ -214,6 +247,7 @@ void CHustBaseApp::OnOpenDB()
 //最后测试时间：2019/12/17 10:11
 //最后测试状态：符合预期
 //最后测试人：Macyrate
+//注：还需要实现在数据库打开时不允许删除
 void CHustBaseApp::OnDropDb()
 {
 	char* folderPath = GetFolderPath();		//选择数据库文件夹路径
