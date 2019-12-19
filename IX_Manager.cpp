@@ -91,9 +91,6 @@ RC CloseIndex(IX_IndexHandle* indexHandle)
 	return SUCCESS;
 }
 
-
-
-
 RC OpenIndexScan(IX_IndexScan *indexScan,IX_IndexHandle *indexHandle,CompOp compOp,char *value){
 	return SUCCESS;
 }
