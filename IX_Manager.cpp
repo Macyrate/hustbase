@@ -82,6 +82,7 @@ RC OpenIndex(const char *fileName, IX_IndexHandle *indexHandle) {
   return SUCCESS;
 }
 
+// TODO: 可能存在bug
 //关闭索引文件
 RC CloseIndex(IX_IndexHandle *indexHandle) {
   PF_FileHandle fileHandle = indexHandle->fileHandle;
