@@ -5,6 +5,9 @@
 #include "DebugLogger.h"
 #include <stdio.h>
 
+//最后测试时间：2019/12/20 9:20
+//最后测试状态：符合预期
+//最后测试人：strangenameBC
 void LogMessage(const char* Msg, MsgLevel Level)
 {
 #ifdef DEBUG
