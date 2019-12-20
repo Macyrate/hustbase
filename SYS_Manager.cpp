@@ -291,18 +291,28 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	rid->bValid = false;
 
 	rc = RM_OpenFile("SYSTABLES", hSystables);
-	if (rc != SUCCESS)
+	if (rc != SUCCESS) {
+		free(hSystables);
 		return rc;
+	}
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
-	if (rc != SUCCESS)
+	if (rc != SUCCESS) {
+		free(hSyscolumns);
 		return rc;
+	}
 
 	char* pSystableRecord = (char*)malloc(sizeof(SysTable));		//构造SYSTABLES记录
 	memcpy(pSystableRecord, relName, 21);							//填充表名
 	memcpy(pSystableRecord + 21, &attrCount, sizeof(int));			//填充列数
 	rc = InsertRec(hSystables, pSystableRecord, rid);
-	if (rc != SUCCESS)
-		goto abort;
+	if (rc != SUCCESS) {
+		free(hSystables);
+		return rc;
+	}
+	else {
+		RM_CloseFile(hSystables);
+		free(hSystables);
+	}
 
 	for (int i = 0; i < attrCount; i++) {
 		char* pSyscolumnRecord = (char*)malloc(sizeof(SysColumn));									//构造SYSCOLUMNS记录
@@ -314,28 +324,16 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int) + 1, "0", sizeof(char));						//填充索引标志
 		rid = (RID*)malloc(sizeof(RID));
 		rid->bValid = false;
-		rc = InsertRec(hSystables, pSystableRecord, rid);
-		if (rc != SUCCESS) {
-			free(pSyscolumnRecord);
-			goto abort;
-		}
-		else {
-			free(pSyscolumnRecord);
-			free(rid);
-		}
-	}
-	
-	rc = RM_CreateFile(relName, recordSize);
-	if (rc != SUCCESS)
-		goto abort;
-	else
+		rc = InsertRec(hSyscolumns, pSystableRecord, rid);
+		free(pSyscolumnRecord);
+		free(rid);
 		return rc;
-
-	abort:
-	delete attrOffset;
-	free(rid);
+	}
+	RM_CloseFile(hSyscolumns);
 	free(hSyscolumns);
-	free(hSystables);
+
+	rc = RM_CreateFile(relName, recordSize);
+	delete attrOffset;
 	return rc;
 }
 
