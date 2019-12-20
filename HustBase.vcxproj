@@ -138,6 +138,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="DBTest.cpp" />
+    <ClCompile Include="DebugLogger.cpp" />
     <ClCompile Include="EditArea.cpp" />
     <ClCompile Include="HustBase.cpp" />
     <ClCompile Include="HustBaseDoc.cpp" />
@@ -171,6 +172,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DBTest.h" />
+    <ClInclude Include="DebugLogger.h" />
     <ClInclude Include="EditArea.h" />
     <ClInclude Include="HustBase.h" />
     <ClInclude Include="HustBaseDoc.h" />
