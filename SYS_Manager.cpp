@@ -255,7 +255,10 @@ RC CloseDB() {
 	return SUCCESS;
 }
 
-//创建数据表,未完成
+//创建一个名为relName的表。未完成
+//参数attrCount表示关系中属性的数量（取值为1到MAXATTRS之间）。
+//参数attributes是一个长度为attrCount的数组。
+//对于新关系中第i个属性，attributes数组中的第i个元素包含名称、类型和属性的长度（见AttrInfo结构定义）。
 RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 {
 	//typedef struct _ AttrInfo AttrInfo;
@@ -268,7 +271,12 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns;
 	RID* rid;
-	int recordsize = 0;//每条记录的大小
+	int recordSize = 0;//每条记录的大小
+	int* attrOffset = new int[attrCount];
+	for (int i = 0; i < attrCount; i++) {
+		attrOffset[i] = recordSize;		//预先计算属性的offset
+		recordSize += attributes[i].attrLength;		//计算整条记录的长度
+	}
 
 	//打开系统表文件
 	hSystables = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
@@ -284,13 +292,21 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
 	if (rc != SUCCESS)
 		return rc;
+	char* pSystableRecord = (char*)malloc(25);
+	memcpy(pSystableRecord, relName, 21);
+	memcpy(pSystableRecord + 21, &attrCount, 4);
+	rc = InsertRec(hSystables, pSystableRecord, rid);
+	if (rc != SUCCESS) {
+		goto abort;
+	}
 
 	//code here...
-
+	abort:
+	delete attrOffset;
+	free(rid);
 	free(hSyscolumns);
 	free(hSystables);
-
-	return SUCCESS;
+	return rc;
 }
 
 bool CanButtonClick() {//需要重新实现
@@ -298,12 +314,4 @@ bool CanButtonClick() {//需要重新实现
 	return true;
 	//如果当前没有数据库打开
 	//return false;
-}
-
-//创建一个名为relName的表。
-//参数attrCount表示关系中属性的数量（取值为1到MAXATTRS之间）。
-//参数attributes是一个长度为attrCount的数组。
-//对于新关系中第i个属性，attributes数组中的第i个元素包含名称、类型和属性的长度（见AttrInfo结构定义）。
-RC CreateTable(char* relName, int attrCount, AttrInfo* attributes) {
-	return SUCCESS;
 }
