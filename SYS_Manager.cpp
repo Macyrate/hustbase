@@ -45,51 +45,52 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//	return;
 	//}
 	/*--------------------以下代码为测试RM_Manager，无实际意义--------------------*/
-	LogMessage("这是一条消息级Log");
-	LogMessage("这是一条错误级Log", LOG_ERROR);
-	RM_CreateFile("abc", 32);
-	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
-	RM_OpenFile("abc", handle);
-	char dummyData[32] = "Hello, world!\0";
-	char dummyData2[32] = "Hakurei Reimu\0";
-	char dummyData3[32] = "Kochiya Sanae\0";
-	RID* rid = (RID*)malloc(sizeof(RID));
-	RC insertRC;
-	for (int i = 0; i < 10; i++)
-	{
-		insertRC = InsertRec(handle, dummyData, rid);
-	}
-	free(rid);
-	rid = (RID*)malloc(sizeof(RID));
-	for (int i = 0; i < 10; i++)
-	{
-		insertRC = InsertRec(handle, dummyData2, rid);
-	}
-	free(rid);
-	rid = (RID*)malloc(sizeof(RID));
-	for (int i = 5; i < 11; i++)
-	{
-		RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
-		rec->bValid = false;
-		rec->pData = (char*)dummyData3;
-		rec->rid.pageNum = 2;
-		rec->rid.slotNum = i;
-		UpdateRec(handle, rec);
-		free(rec);
-	}
-	free(rid);
-	RM_FileScan* scan = (RM_FileScan*)malloc(sizeof(RM_FileScan));
-	OpenScan(scan, handle, 0, NULL);
-	RC rc1 = SUCCESS;
-	while (rc1 == SUCCESS)
-	{
-		RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
-		rc1 = GetNextRec(scan, rec);
-		AfxMessageBox(rec->pData);
-		free(rec);
-	}
-	free(scan);
-	RM_CloseFile(handle);
+	//LogMessage("这是一条消息级Log");
+	//LogMessage("这是一条错误级Log", LOG_ERROR);
+	//RM_CreateFile("abc", 32);
+	//RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
+	//RM_OpenFile("abc", handle);
+	//char dummyData[32] = "Hello, world!\0";
+	//char dummyData2[32] = "Hakurei Reimu\0";
+	//char dummyData3[32] = "Kochiya Sanae\0";
+	//RID* rid = (RID*)malloc(sizeof(RID));
+	//RC insertRC;
+	//for (int i = 0; i < 10; i++)
+	//{
+	//	insertRC = InsertRec(handle, dummyData, rid);
+	//}
+	//free(rid);
+	//rid = (RID*)malloc(sizeof(RID));
+	//for (int i = 0; i < 10; i++)
+	//{
+	//	insertRC = InsertRec(handle, dummyData2, rid);
+	//}
+	//free(rid);
+	//rid = (RID*)malloc(sizeof(RID));
+	//for (int i = 5; i < 11; i++)
+	//{
+	//	RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
+	//	rec->bValid = false;
+	//	rec->pData = (char*)dummyData3;
+	//	rec->rid.pageNum = 2;
+	//	rec->rid.slotNum = i;
+	//	UpdateRec(handle, rec);
+	//	free(rec);
+	//}
+	//free(rid);
+	//RM_FileScan* scan = (RM_FileScan*)malloc(sizeof(RM_FileScan));
+	//OpenScan(scan, handle, 0, NULL);
+	//RC rc1 = SUCCESS;
+	//while (rc1 == SUCCESS)
+	//{
+	//	RM_Record* rec = (RM_Record*)malloc(sizeof(RM_Record));
+	//	rc1 = GetNextRec(scan, rec);
+	//	AfxMessageBox(rec->pData);
+	//	free(rec);
+	//}
+	//free(scan);
+	//RM_CloseFile(handle);
+
 	/*--------------------------------------------------------------------*/
 	RC rc = execute(sql);
 	int row_num = 0;
@@ -278,7 +279,7 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	int* attrOffset = new int[attrCount];
 	for (int i = 0; i < attrCount; i++) {
 		attrOffset[i] = recordSize;		//预先计算属性的offset
-		recordSize += attributes[i].attrLength;		//计算整条记录的长度
+		recordSize += (attributes + i)->attrLength;		//计算整条记录的长度
 	}
 
 	//打开系统表文件
@@ -295,15 +296,41 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
 	if (rc != SUCCESS)
 		return rc;
-	char* pSystableRecord = (char*)malloc(25);
-	memcpy(pSystableRecord, relName, 21);
-	memcpy(pSystableRecord + 21, &attrCount, 4);
-	rc = InsertRec(hSystables, pSystableRecord, rid);
-	if (rc != SUCCESS) {
-		goto abort;
-	}
 
-	//code here...
+	char* pSystableRecord = (char*)malloc(sizeof(SysTable));		//构造SYSTABLES记录
+	memcpy(pSystableRecord, relName, 21);							//填充表名
+	memcpy(pSystableRecord + 21, &attrCount, sizeof(int));			//填充列数
+	rc = InsertRec(hSystables, pSystableRecord, rid);
+	if (rc != SUCCESS)
+		goto abort;
+
+	for (int i = 0; i < attrCount; i++) {
+		char* pSyscolumnRecord = (char*)malloc(sizeof(SysColumn));									//构造SYSCOLUMNS记录
+		memcpy(pSyscolumnRecord, relName, 21);														//填充表名
+		memcpy(pSyscolumnRecord + 21, (attributes + i)->attrName, 21);								//填充属性名
+		memcpy(pSyscolumnRecord + 42, &((attributes + i)->attrType), sizeof(int));					//填充属性类型
+		memcpy(pSyscolumnRecord + 42 + sizeof(int), &(attributes + i)->attrLength, sizeof(int));	//填充属性长度
+		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int), &attrOffset[i], sizeof(int));				//填充属性偏移量
+		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int) + 1, "0", sizeof(char));						//填充索引标志
+		rid = (RID*)malloc(sizeof(RID));
+		rid->bValid = false;
+		rc = InsertRec(hSystables, pSystableRecord, rid);
+		if (rc != SUCCESS) {
+			free(pSyscolumnRecord);
+			goto abort;
+		}
+		else {
+			free(pSyscolumnRecord);
+			free(rid);
+		}
+	}
+	
+	rc = RM_CreateFile(relName, recordSize);
+	if (rc != SUCCESS)
+		goto abort;
+	else
+		return rc;
+
 	abort:
 	delete attrOffset;
 	free(rid);
