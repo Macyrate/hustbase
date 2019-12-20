@@ -259,7 +259,10 @@ RC CloseDB() {
 	return SUCCESS;
 }
 
-//创建一个名为relName的表。未完成
+//最后测试时间：2019/12/20 13:38
+//最后测试状态：符合预期
+//最后测试人：Macyrate
+//创建一个名为relName的表。
 //参数attrCount表示关系中属性的数量（取值为1到MAXATTRS之间）。
 //参数attributes是一个长度为attrCount的数组。
 //对于新关系中第i个属性，attributes数组中的第i个元素包含名称、类型和属性的长度（见AttrInfo结构定义）。
@@ -275,10 +278,11 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns;
 	RID* rid;
+	const int attrCountC = attrCount;
 	int recordSize = 0;//每条记录的大小
-	int* attrOffset = new int[attrCount];
+	int* attrOffset = (int*)malloc(sizeof(int) * attrCount);
 	for (int i = 0; i < attrCount; i++) {
-		attrOffset[i] = recordSize;		//预先计算属性的offset
+		*(attrOffset + i) = recordSize;		//预先计算属性的offset
 		recordSize += (attributes + i)->attrLength;		//计算整条记录的长度
 	}
 
@@ -287,7 +291,7 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	hSystables->bOpen = false;
 	hSyscolumns = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	hSyscolumns->bOpen = false;
-	rid = (RID*)malloc(sizeof(RID));
+	rid = (RID*)calloc(1,sizeof(RID));
 	rid->bValid = false;
 
 	rc = RM_OpenFile("SYSTABLES", hSystables);
@@ -301,39 +305,36 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 		return rc;
 	}
 
-	char* pSystableRecord = (char*)malloc(sizeof(SysTable));		//构造SYSTABLES记录
-	memcpy(pSystableRecord, relName, 21);							//填充表名
+	char* pSystableRecord = (char*)calloc(1,sizeof(SysTable));		//构造SYSTABLES记录
+	strcpy(pSystableRecord, relName);								//填充表名
 	memcpy(pSystableRecord + 21, &attrCount, sizeof(int));			//填充列数
-	rc = InsertRec(hSystables, pSystableRecord, rid);
-	if (rc != SUCCESS) {
-		free(hSystables);
-		return rc;
-	}
-	else {
-		RM_CloseFile(hSystables);
-		free(hSystables);
-	}
+	rc = InsertRec(hSystables, pSystableRecord, rid);				//向SYSTABLES插入记录
+	if (rc != SUCCESS) return rc;
+	rc = RM_CloseFile(hSystables);									//关闭文件
+	if (rc != SUCCESS) return rc;
+	free(hSystables);
+	free(rid);
 
 	for (int i = 0; i < attrCount; i++) {
-		char* pSyscolumnRecord = (char*)malloc(sizeof(SysColumn));									//构造SYSCOLUMNS记录
-		memcpy(pSyscolumnRecord, relName, 21);														//填充表名
-		memcpy(pSyscolumnRecord + 21, (attributes + i)->attrName, 21);								//填充属性名
-		memcpy(pSyscolumnRecord + 42, &((attributes + i)->attrType), sizeof(int));					//填充属性类型
-		memcpy(pSyscolumnRecord + 42 + sizeof(int), &(attributes + i)->attrLength, sizeof(int));	//填充属性长度
-		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int), &attrOffset[i], sizeof(int));				//填充属性偏移量
-		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int) + 1, "0", sizeof(char));						//填充索引标志
-		rid = (RID*)malloc(sizeof(RID));
+		char* pSyscolumnRecord = (char*)calloc(1,sizeof(SysColumn));									//构造SYSCOLUMNS记录
+		strcpy(pSyscolumnRecord, relName);																//填充表名
+		strcpy(pSyscolumnRecord + 21, (attributes + i)->attrName);										//填充属性名
+		memcpy(pSyscolumnRecord + 42, &((attributes + i)->attrType), sizeof(int));						//填充属性类型
+		memcpy(pSyscolumnRecord + 42 + sizeof(int), &((attributes + i)->attrLength), sizeof(int));		//填充属性长度
+		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int), (attrOffset + i), sizeof(int));					//填充属性偏移量
+		memcpy(pSyscolumnRecord + 42 + 3 * sizeof(int), "0", sizeof(char));								//填充索引标志
+		rid = (RID*)calloc(1,sizeof(RID));
 		rid->bValid = false;
-		rc = InsertRec(hSyscolumns, pSystableRecord, rid);
+		rc = InsertRec(hSyscolumns, pSyscolumnRecord, rid);		//向SYSCOLUMNS插入记录
+		if (rc != SUCCESS) return rc;
 		free(pSyscolumnRecord);
 		free(rid);
-		return rc;
 	}
-	RM_CloseFile(hSyscolumns);
+	RM_CloseFile(hSyscolumns);		//关闭文件
 	free(hSyscolumns);
 
-	rc = RM_CreateFile(relName, recordSize);
-	delete attrOffset;
+	rc = RM_CreateFile(relName, recordSize);		//创建数据表
+	free(attrOffset);
 	return rc;
 }
 
