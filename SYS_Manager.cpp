@@ -5,6 +5,7 @@
 #include "RM_Manager.h"
 #include <iostream>
 #include "string.h"
+#include "DebugLogger.h"
 
 void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
@@ -44,7 +45,9 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//	return;
 	//}
 	/*--------------------以下代码为测试RM_Manager，无实际意义--------------------*/
-	//RM_CreateFile("abc", 32);
+	LogMessage("这是一条消息级Log");
+	LogMessage("这是一条错误级Log", LOG_ERROR);
+	RM_CreateFile("abc", 32);
 	RM_FileHandle* handle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	RM_OpenFile("abc", handle);
 	char dummyData[32] = "Hello, world!\0";

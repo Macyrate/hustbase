@@ -1,5 +1,5 @@
-#include "IX_Manager.h"
 #include "stdafx.h"
+#include "IX_Manager.h"
 
 int threshold = 0;
 
@@ -314,6 +314,7 @@ void setInfoToPage(PF_PageHandle *pageHandle, int order, AttrType attrType,
 //索引的删除
 RC DeleteEntry(IX_IndexHandle *indexHandle, void *pData, RID *rid) {
   // TODO: 完成索引删除
+    return SUCCESS;
 }
 
 RC OpenIndexScan(IX_IndexScan *indexScan, IX_IndexHandle *indexHandle,

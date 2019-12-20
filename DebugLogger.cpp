@@ -5,7 +5,7 @@
 #include "DebugLogger.h"
 #include <stdio.h>
 
-void LogMessage(const char* Msg, MsgLevel Level = LOG_INFO)
+void LogMessage(const char* Msg, MsgLevel Level)
 {
 #ifdef DEBUG
 

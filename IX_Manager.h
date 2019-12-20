@@ -63,4 +63,11 @@ RC IX_GetNextEntry(IX_IndexScan *indexScan,RID * rid);
 RC CloseIndexScan(IX_IndexScan *indexScan);
 RC GetIndexTree(char *fileName, Tree *index);
 
+void setInfoToPage(PF_PageHandle* pageHandle, int order, AttrType attrType,
+	int attrLength, void* pData, RID* rid, bool insertIfTrue);
+void cpNewToPage(PF_PageHandle* pageHandle, PageNum brother, PageNum parent,
+	int is_leaf, int keynum);
+void cpInfoToPage(PF_PageHandle* pageHandle, void* keySrc, int attrLength,
+	int num, int order, void* ridSrc);
+
 #endif
