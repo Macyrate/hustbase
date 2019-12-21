@@ -291,7 +291,7 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	hSystables->bOpen = false;
 	hSyscolumns = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
 	hSyscolumns->bOpen = false;
-	rid = (RID*)calloc(1,sizeof(RID));
+	rid = (RID*)calloc(1, sizeof(RID));
 	rid->bValid = false;
 
 	rc = RM_OpenFile("SYSTABLES", hSystables);
@@ -305,7 +305,7 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 		return rc;
 	}
 
-	char* pSystableRecord = (char*)calloc(1,sizeof(SysTable));		//构造SYSTABLES记录
+	char* pSystableRecord = (char*)calloc(1, sizeof(SysTable));		//构造SYSTABLES记录
 	strcpy(pSystableRecord, relName);								//填充表名
 	memcpy(pSystableRecord + 21, &attrCount, sizeof(int));			//填充列数
 	rc = InsertRec(hSystables, pSystableRecord, rid);				//向SYSTABLES插入记录
@@ -316,14 +316,14 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	free(rid);
 
 	for (int i = 0; i < attrCount; i++) {
-		char* pSyscolumnRecord = (char*)calloc(1,sizeof(SysColumn));									//构造SYSCOLUMNS记录
+		char* pSyscolumnRecord = (char*)calloc(1, sizeof(SysColumn));									//构造SYSCOLUMNS记录
 		strcpy(pSyscolumnRecord, relName);																//填充表名
 		strcpy(pSyscolumnRecord + 21, (attributes + i)->attrName);										//填充属性名
 		memcpy(pSyscolumnRecord + 42, &((attributes + i)->attrType), sizeof(int));						//填充属性类型
 		memcpy(pSyscolumnRecord + 42 + sizeof(int), &((attributes + i)->attrLength), sizeof(int));		//填充属性长度
 		memcpy(pSyscolumnRecord + 42 + 2 * sizeof(int), (attrOffset + i), sizeof(int));					//填充属性偏移量
 		memcpy(pSyscolumnRecord + 42 + 3 * sizeof(int), "0", sizeof(char));								//填充索引标志
-		rid = (RID*)calloc(1,sizeof(RID));
+		rid = (RID*)calloc(1, sizeof(RID));
 		rid->bValid = false;
 		rc = InsertRec(hSyscolumns, pSyscolumnRecord, rid);		//向SYSCOLUMNS插入记录
 		if (rc != SUCCESS) return rc;
@@ -336,6 +336,34 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	rc = RM_CreateFile(relName, recordSize);		//创建数据表
 	free(attrOffset);
 	return rc;
+}
+
+//未完成
+//删除表名为relName的数据表以及所有对应的索引
+RC DropTable(char* relName) {
+	RC rc;
+	RM_FileHandle* hTable, * hSystables, * hSyscolumns;
+
+	//打开要操作的表文件，获取句柄
+	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hTable->bOpen = false;
+	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hSystables->bOpen = false;
+	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hSyscolumns->bOpen = false;
+	rc = RM_OpenFile("SYSTABLES", hSystables);
+	if (rc != SUCCESS) return rc;
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS) return rc;
+	rc = RM_OpenFile(relName, hTable);
+	if (rc != SUCCESS) return rc;
+
+
+	RM_Record* systablerecord;
+
+	return SUCCESS;
+
+
 }
 
 bool CanButtonClick() {//需要重新实现
