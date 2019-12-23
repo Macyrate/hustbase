@@ -155,6 +155,7 @@ RC execute(char* sql) {
 
 		case 6:
 			//判断SQL语句为dropTable语句
+			DropTable(sql_str->sstr.drt.relName);
 			break;
 
 		case 7:
@@ -342,12 +343,10 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 //删除表名为relName的数据表以及所有对应的索引
 RC DropTable(char* relName) {
 	RC rc;
-	RM_FileHandle* hTable, * hSystables, * hSyscolumns;
+	RM_FileHandle* hSystables, * hSyscolumns;
 	RM_FileScan* FileScan;
 
 	//打开要操作的表文件，获取句柄
-	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
-	hTable->bOpen = false;
 	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hSystables->bOpen = false;
 	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
@@ -355,8 +354,6 @@ RC DropTable(char* relName) {
 	rc = RM_OpenFile("SYSTABLES", hSystables);
 	if (rc != SUCCESS) return rc;
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
-	if (rc != SUCCESS) return rc;
-	rc = RM_OpenFile(relName, hTable);
 	if (rc != SUCCESS) return rc;
 
 	//构造暂存搜索结果
@@ -389,7 +386,6 @@ RC DropTable(char* relName) {
 	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
 		if (strcmp(relName, syscolumnsRec->pData) == 0) {
 			DeleteRec(hSyscolumns, &(syscolumnsRec->rid));
-			break;
 		}
 	}
 	CloseScan(FileScan);
