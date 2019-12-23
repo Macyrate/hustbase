@@ -338,11 +338,12 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	return rc;
 }
 
-//未完成
+//未测试
 //删除表名为relName的数据表以及所有对应的索引
 RC DropTable(char* relName) {
 	RC rc;
 	RM_FileHandle* hTable, * hSystables, * hSyscolumns;
+	RM_FileScan* FileScan;
 
 	//打开要操作的表文件，获取句柄
 	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
@@ -358,12 +359,58 @@ RC DropTable(char* relName) {
 	rc = RM_OpenFile(relName, hTable);
 	if (rc != SUCCESS) return rc;
 
+	//构造暂存搜索结果
+	RM_Record* systablesRec = (RM_Record*)calloc(1,sizeof(RM_Record));
+	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	systablesRec->bValid = false;
+	syscolumnsRec->bValid = false;
 
-	RM_Record* systablerecord;
+	//对SYSTABLES启动扫描器，不加条件以直接进行遍历
+	FileScan = (RM_FileScan*)malloc(sizeof(RM_FileScan));
+	FileScan->bOpen = false;
+	rc = OpenScan(FileScan, hSystables, 0, NULL);
+	if (rc != SUCCESS) return rc;
+
+	//循环查找SYSTABLES中"表名"为relName的记录,对其进行删除
+	while (GetNextRec(FileScan, systablesRec) == SUCCESS) {
+		if (strcmp(relName, systablesRec->pData) == 0) {
+			DeleteRec(hSystables, &(systablesRec->rid));
+			break;
+		}
+	}
+	CloseScan(FileScan);
+	FileScan->bOpen = false;
+
+	//对SYSCOLUMNS启动扫描器，不加条件以直接进行遍历
+	rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
+	if (rc != SUCCESS) return rc;
+
+	//循环查找SYSCOLUMNS中"表名"为relName的记录，对其进行删除
+	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
+		if (strcmp(relName, syscolumnsRec->pData) == 0) {
+			DeleteRec(hSyscolumns, &(syscolumnsRec->rid));
+			break;
+		}
+	}
+	CloseScan(FileScan);
+	free(FileScan);
+
+	//关闭文件
+	rc = RM_CloseFile(hSystables); 
+	if (rc != SUCCESS) return rc;
+	rc = RM_CloseFile(hSyscolumns); 
+	if (rc != SUCCESS) return rc;
+	
+	//释放空间
+	free(hSystables);
+	free(hSyscolumns);
+	free(systablesRec);
+	free(syscolumnsRec);
+
+	//删除数据表文件
+	DeleteFile((LPCTSTR)relName);
 
 	return SUCCESS;
-
-
 }
 
 bool CanButtonClick() {//需要重新实现
