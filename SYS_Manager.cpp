@@ -339,8 +339,10 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	return rc;
 }
 
-//未测试
-//删除表名为relName的数据表以及所有对应的索引
+//最后测试时间：2019/12/23 16:20
+//最后测试状态：符合预期
+//最后测试人：Macyrate
+//删除表名为relName的数据表，以及所有对应的索引
 RC DropTable(char* relName) {
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns;
@@ -357,7 +359,7 @@ RC DropTable(char* relName) {
 	if (rc != SUCCESS) return rc;
 
 	//构造暂存搜索结果
-	RM_Record* systablesRec = (RM_Record*)calloc(1,sizeof(RM_Record));
+	RM_Record* systablesRec = (RM_Record*)calloc(1, sizeof(RM_Record));
 	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
 	systablesRec->bValid = false;
 	syscolumnsRec->bValid = false;
@@ -385,18 +387,22 @@ RC DropTable(char* relName) {
 	//循环查找SYSCOLUMNS中"表名"为relName的记录，对其进行删除
 	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
 		if (strcmp(relName, syscolumnsRec->pData) == 0) {
-			DeleteRec(hSyscolumns, &(syscolumnsRec->rid));
+			if (*((syscolumnsRec->pData) + 42 + 3 * sizeof(int)) == '1') {								//检查是否有索引
+				char* pIndexName = (syscolumnsRec->pData) + 42 + 3 * sizeof(int) + sizeof(char);		//提取索引名称
+				DeleteFile((LPCTSTR)pIndexName);														//删除索引文件
+			}
+			DeleteRec(hSyscolumns, &(syscolumnsRec->rid));												//从表中删除记录
 		}
 	}
 	CloseScan(FileScan);
 	free(FileScan);
 
 	//关闭文件
-	rc = RM_CloseFile(hSystables); 
+	rc = RM_CloseFile(hSystables);
 	if (rc != SUCCESS) return rc;
-	rc = RM_CloseFile(hSyscolumns); 
+	rc = RM_CloseFile(hSyscolumns);
 	if (rc != SUCCESS) return rc;
-	
+
 	//释放空间
 	free(hSystables);
 	free(hSyscolumns);
