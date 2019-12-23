@@ -43,9 +43,13 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 //已完成，个人认为无需测试
 RC CloseScan(RM_FileScan* rmFileScan)
 {
+
 	rmFileScan->pn = -1;
 	rmFileScan->sn = -1;
 	rmFileScan->bOpen = false;
+
+	return SUCCESS;
+
 }
 
 //未测试条件判断
