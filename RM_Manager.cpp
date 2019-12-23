@@ -38,6 +38,8 @@ RC OpenScan(RM_FileScan* rmFileScan, RM_FileHandle* fileHandle, int conNum, Con*
 
 	retRMFileScan->bOpen = true;
 
+	return SUCCESS;
+
 }
 
 //已完成，个人认为无需测试
