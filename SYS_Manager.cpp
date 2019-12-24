@@ -389,7 +389,7 @@ RC DropTable(char* relName) {
 		if (strcmp(relName, syscolumnsRec->pData) == 0) {
 			if (*((syscolumnsRec->pData) + 42 + 3 * sizeof(int)) == '1') {								//检查是否有索引
 				char* pIndexName = (syscolumnsRec->pData) + 42 + 3 * sizeof(int) + sizeof(char);		//提取索引名称
-				DeleteFile((LPCTSTR)pIndexName);														//删除索引文件
+				DropIndex(pIndexName);																	//删除索引
 			}
 			DeleteRec(hSyscolumns, &(syscolumnsRec->rid));												//从表中删除记录
 		}
@@ -414,6 +414,51 @@ RC DropTable(char* relName) {
 
 	return SUCCESS;
 }
+
+//未完成
+//该函数在关系relName的属性attrName上创建名为indexName的索引。
+//函数首先检查在标记属性上是否已经存在一个索引，如果存在，则返回一个非零的错误码。否则，创建该索引。
+//创建索引的工作包括：
+//①创建并打开索引文件；
+//②逐个扫描被索引的记录，并向索引文件中插入索引项；
+//③关闭索引。
+RC CreateIndex(char* indexName, char* relName, char* attrName) {
+	return SUCCESS;
+}
+
+//仅删除索引文件的基础暴力完成，待修改
+//该函数用来删除名为indexName的索引。
+//函数首先检查索引是否存在，如果不存在，则返回一个非零的错误码。否则，销毁该索引。
+RC DropIndex(char* indexName) {
+	if (DeleteFile((LPCTSTR)indexName))
+		return SUCCESS;
+	else
+		return SQL_SYNTAX;
+}
+
+//未完成
+/*该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
+函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项*/
+RC Insert(char* relName, int nValues, Value* values) {
+	return SUCCESS;
+}
+
+//未完成
+//该函数用来删除relName表中所有满足指定条件的元组以及该元组对应的索引项。
+//如果没有指定条件，则此方法删除relName关系中所有元组。
+//如果包含多个条件，则这些条件之间为与关系。
+RC Delete(char* relName, int nConditions, Condition* conditions) {
+	return SUCCESS;
+}
+
+//未完成
+//该函数用于更新relName表中所有满足指定条件的元组，在每一个更新的元组中将属性attrName的值设置为一个新的值。
+//如果没有指定条件，则此方法更新relName中所有元组。
+//如果要更新一个被索引的属性，应当先删除每个被更新元组对应的索引条目，然后插入一个新的索引条目。
+RC Update(char* relName, char* attrName, Value* Value, int nConditions, Condition* conditions) {
+	return SUCCESS;
+}
+
 
 bool CanButtonClick() {//需要重新实现
 	//如果当前有数据库已经打开
