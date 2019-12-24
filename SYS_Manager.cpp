@@ -443,29 +443,50 @@ RC DropIndex(char* indexName) {
 //函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
 	RC rc;
-	RM_FileHandle* hSyscolumns, * hTable;
+	RM_FileHandle* hSystables, * hSyscolumns, * hTable;
 	RM_FileScan* FileScan;
-	RM_Record* tableRec;
 
+	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+
 	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
 	FileScan->bOpen = false;
 
-	//打开系统列文件和数据表文件
+	//打开系统表文件、列文件和数据表文件
+	rc = RM_OpenFile("SYSTABLES", hSystables);
+	if (rc != SUCCESS) return rc;
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
 	if (rc != SUCCESS) return rc;
 	rc = RM_OpenFile(relName, hTable);
 	if (rc != SUCCESS) return rc;
+	hSystables->bOpen = false;
 	hSyscolumns->bOpen = false;
 	hTable->bOpen = false;
 
-	////构造暂存搜索结果
-	//RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
-	//RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
-	//syscolumnsRec->bValid = false;
-	//tableRec->bValid = false;
+	//构造暂存搜索结果
+	RM_Record* systablesRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	systablesRec->bValid = false;
+	syscolumnsRec->bValid = false;
+	tableRec->bValid = false;
 
+	//检查nValues是否正确
+	rc = OpenScan(FileScan, hSystables, 0, NULL);					//扫描系统表文件
+	if (rc != SUCCESS) return rc;
+	int columnsNum = 0;
+	while (GetNextRec(FileScan, systablesRec) == SUCCESS) {
+		if (strcmp(relName, syscolumnsRec->pData) == 0) {
+			columnsNum = *(int*)((syscolumnsRec->pData) + 21);		//提取属性数量
+			break;
+		}
+	}
+	FileScan->bOpen = false;										//关闭扫描
+
+	if (columnsNum != nValues) return SQL_SYNTAX;					//若INSERT语句中列数与表的列数不符，报错
+
+	//查找索引
 	//char** indexGroup = (char**)calloc(1, sizeof(char*) * 128);
 	//char* indexName = (char*)calloc(1, sizeof(char) * 21);
 
