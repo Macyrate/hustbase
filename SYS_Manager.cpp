@@ -6,6 +6,7 @@
 #include <iostream>
 #include "string.h"
 #include "DebugLogger.h"
+#include <string>
 
 void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
@@ -138,6 +139,7 @@ RC execute(char* sql) {
 
 		case 2:
 			//判断SQL语句为insert语句
+			Insert(sql_str->sstr.ins.relName, sql_str->sstr.ins.nValues, sql_str->sstr.ins.values);
 
 		case 3:
 			//判断SQL语句为update语句
@@ -436,10 +438,67 @@ RC DropIndex(char* indexName) {
 		return SQL_SYNTAX;
 }
 
-//未完成
-/*该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
-函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项*/
+//未完成，施工中
+//该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
+//函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
+	RC rc;
+	RM_FileHandle* hSyscolumns, * hTable;
+	RM_FileScan* FileScan;
+	RM_Record* tableRec;
+
+	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan->bOpen = false;
+
+	//打开系统列文件和数据表文件
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS) return rc;
+	rc = RM_OpenFile(relName, hTable);
+	if (rc != SUCCESS) return rc;
+	hSyscolumns->bOpen = false;
+	hTable->bOpen = false;
+
+	////构造暂存搜索结果
+	//RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	//RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	//syscolumnsRec->bValid = false;
+	//tableRec->bValid = false;
+
+	//char** indexGroup = (char**)calloc(1, sizeof(char*) * 128);
+	//char* indexName = (char*)calloc(1, sizeof(char) * 21);
+
+	//rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
+	//if (rc != SUCCESS) return rc;
+	//while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
+	//	if (strcmp(relName, syscolumnsRec->pData) == 0) {
+	//		if (*((syscolumnsRec->pData) + 42 + 3 * sizeof(int)) == '1') {								//检查是否有索引
+	//			//indexName = (syscolumnsRec->pData) + 42 + 3 * sizeof(int) + sizeof(char);				//提取索引名称
+	//		}
+	//		DeleteRec(hSyscolumns, &(syscolumnsRec->rid));												//从表中删除记录
+	//	}
+	//}
+	//FileScan->bOpen = false;
+	
+	//构建元组
+	for (int i = 0; i < nValues; i++) {
+		if (values->type == 0) {
+
+		}
+		if (values->type == 1) {
+
+		}
+		if (values->type == 2) {
+
+		}
+		else return SQL_SYNTAX;
+	}
+
+
+
+
+
 	return SUCCESS;
 }
 
