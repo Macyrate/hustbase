@@ -7,6 +7,9 @@
 #include "string.h"
 #include "DebugLogger.h"
 #include <string>
+#include <algorithm>
+
+using namespace std;
 
 void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
@@ -140,13 +143,15 @@ RC execute(char* sql) {
 		case 2:
 			//判断SQL语句为insert语句
 			Insert(sql_str->sstr.ins.relName, sql_str->sstr.ins.nValues, sql_str->sstr.ins.values);
-
+			break;
 		case 3:
 			//判断SQL语句为update语句
+			Update(sql_str->sstr.upd.relName, sql_str->sstr.upd.attrName, &sql_str->sstr.upd.value, sql_str->sstr.upd.nConditions, sql_str->sstr.upd.conditions);
 			break;
 
 		case 4:
 			//判断SQL语句为delete语句
+			Delete(sql_str->sstr.del.relName, sql_str->sstr.del.nConditions, sql_str->sstr.del.conditions);
 			break;
 
 		case 5:
@@ -162,10 +167,12 @@ RC execute(char* sql) {
 
 		case 7:
 			//判断SQL语句为createIndex语句
+			CreateIndex(sql_str->sstr.crei.indexName, sql_str->sstr.crei.relName, sql_str->sstr.crei.attrName);
 			break;
 
 		case 8:
 			//判断SQL语句为dropIndex语句
+			DropIndex(sql_str->sstr.dri.indexName);
 			break;
 
 		case 9:
@@ -245,7 +252,7 @@ RC OpenDB(char* dbname) {
 	return SQL_SYNTAX;
 }
 
-//关闭数据库，未完成
+//关闭数据库，并不知道怎么写好
 RC CloseDB() {
 	//RC rc;
 	//char* dbname[256];
@@ -438,13 +445,19 @@ RC DropIndex(char* indexName) {
 		return SQL_SYNTAX;
 }
 
-//未完成，施工中
+//用于对属性列表按偏移量升序排列
+bool ColCmp(SysColumn& col1, SysColumn& col2) {
+	return col1.attroffset < col2.attroffset;
+}
+
+//基本完成，未测试
 //该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
 //函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns, * hTable;
 	RM_FileScan* FileScan;
+	SysColumn* rgstSyscolumns;
 
 	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
@@ -452,6 +465,8 @@ RC Insert(char* relName, int nValues, Value* values) {
 
 	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
 	FileScan->bOpen = false;
+
+	rgstSyscolumns = (SysColumn*)calloc(nValues, sizeof(SysColumn));
 
 	//打开系统表文件、列文件和数据表文件
 	rc = RM_OpenFile("SYSTABLES", hSystables);
@@ -483,10 +498,61 @@ RC Insert(char* relName, int nValues, Value* values) {
 		}
 	}
 	FileScan->bOpen = false;										//关闭扫描
+	RM_CloseFile(hSystables);
+	free(hSystables);
 
 	if (columnsNum != nValues) return SQL_SYNTAX;					//若INSERT语句中列数与表的列数不符，报错
 
-	//查找索引
+	//提取要插入目的表的属性列表
+	rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
+	if (rc != SUCCESS) return rc;
+	int recordSize = 0;
+	for (int i = 0; i < nValues && GetNextRec(FileScan, syscolumnsRec) == SUCCESS; i++) {
+		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
+		memcpy((rgstSyscolumns + i)->attrname, syscolumnsRec->pData + 21, 21);													//提取属性名
+		memcpy(&((rgstSyscolumns + i)->attrtype), syscolumnsRec->pData + 42, sizeof(int));										//提取属性类型
+		memcpy(&((rgstSyscolumns + i)->attrlength), syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));													//提取属性类型
+		memcpy(&((rgstSyscolumns + i)->attroffset), syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));					//提取属性偏移量
+		memcpy(&((rgstSyscolumns + i)->ix_flag), syscolumnsRec->pData + 42 + sizeof(int) * 3, sizeof(char));					//提取索引标志
+		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), sizeof(char));		//提取索引标志
+
+		recordSize += (rgstSyscolumns + i)->attrlength;			//计算要构造的元组总长度
+	}
+	CloseScan(FileScan);
+	free(FileScan);
+
+	//检查values是否与目的表属性列表一致,构造元组
+	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);		//按偏移量升序整理提取的属性列表
+	char* columntoInsert = (char*)calloc(1, sizeof(char) * recordSize);
+	for (int i; i < nValues; i++) {
+		if ((values + i)->type != (rgstSyscolumns + i)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
+		if ((values + i)->type == AttrType::chars) {													//如果属性类型是字符串	
+			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + i)->attrlength)					//检查要插入的字符串是否过长
+				return SQL_SYNTAX;
+			memcpy(columntoInsert + (rgstSyscolumns + i)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));		//复制字符串长度的内容
+		}
+		else
+			memcpy(columntoInsert + (rgstSyscolumns + i)->attroffset, (values + i)->data, (rgstSyscolumns + i)->attrlength);		//复制内容
+	}
+	RID* rid = (RID*)malloc(sizeof(RID));
+	rid->bValid = false;
+	rc = InsertRec(hTable, columntoInsert, rid);			//插入记录
+	if (rc != SUCCESS)return rc;
+
+	free(rid);
+	free(rgstSyscolumns);
+	free(columntoInsert);
+
+	rc = RM_CloseFile(hSyscolumns);			//关闭文件
+	if (rc != SUCCESS)return rc;
+	rc = RM_CloseFile(hTable);
+	if (rc != SUCCESS)return rc;
+
+	free(hSyscolumns);						//释放句柄
+	free(hTable);
+
+
+	//查找索引……暂时不清楚怎么做
 	//char** indexGroup = (char**)calloc(1, sizeof(char*) * 128);
 	//char* indexName = (char*)calloc(1, sizeof(char) * 21);
 
@@ -501,24 +567,6 @@ RC Insert(char* relName, int nValues, Value* values) {
 	//	}
 	//}
 	//FileScan->bOpen = false;
-	
-	//构建元组
-	for (int i = 0; i < nValues; i++) {
-		if (values->type == 0) {
-
-		}
-		if (values->type == 1) {
-
-		}
-		if (values->type == 2) {
-
-		}
-		else return SQL_SYNTAX;
-	}
-
-
-
-
 
 	return SUCCESS;
 }
