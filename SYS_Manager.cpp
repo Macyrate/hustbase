@@ -440,10 +440,38 @@ RC CreateIndex(char* indexName, char* relName, char* attrName) {
 //该函数用来删除名为indexName的索引。
 //函数首先检查索引是否存在，如果不存在，则返回一个非零的错误码。否则，销毁该索引。
 RC DropIndex(char* indexName) {
-	if (DeleteFile((LPCTSTR)indexName))
-		return SUCCESS;
-	else
-		return SQL_SYNTAX;
+	RC rc;
+	RM_FileHandle* hSyscolumns;
+	IX_IndexHandle* hIndex;
+	RM_FileScan* FileScan;
+	RM_Record* syscolumnsRec;
+
+	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
+	syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS)return rc;
+	rc = OpenIndex(indexName, hIndex);
+	if (rc != SUCCESS)return rc;
+
+	rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
+	if (rc != SUCCESS)return rc;
+
+	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
+		if (strcmp(syscolumnsRec->pData + 42 + sizeof(int) * 3, "0") == 0) {								//查找有索引的列
+			if (strcmp(indexName, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char)) == 0) {		//判断索引名是否一致
+				if (DeleteFile((LPCTSTR)indexName))			//尝试删除索引文件
+					return SUCCESS;
+				else
+					return SQL_SYNTAX;
+			}
+			continue;
+		}
+		else
+			return SQL_SYNTAX;
+	}
 }
 
 //用于对属性列表按偏移量升序排列
