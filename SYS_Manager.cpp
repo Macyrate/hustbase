@@ -3,6 +3,7 @@
 #include "SYS_Manager.h"
 #include "QU_Manager.h"
 #include "RM_Manager.h"
+#include "IX_Manager.h"
 #include <iostream>
 #include "string.h"
 #include "DebugLogger.h"
@@ -456,12 +457,16 @@ bool ColCmp(SysColumn& col1, SysColumn& col2) {
 RC Insert(char* relName, int nValues, Value* values) {
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns, * hTable;
+	IX_IndexHandle* hIndex;
 	RM_FileScan* FileScan;
 	SysColumn* rgstSyscolumns;
+	RID* rid;
 
 	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
+	rid = (RID*)malloc(sizeof(RID));
 
 	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
 	FileScan->bOpen = false;
@@ -521,8 +526,8 @@ RC Insert(char* relName, int nValues, Value* values) {
 	CloseScan(FileScan);
 	free(FileScan);
 
-	//检查values是否与目的表属性列表一致,构造元组
-	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);		//按偏移量升序整理提取的属性列表
+	//检查values是否与目的表属性列表一致，构造元组，添加索引记录
+	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);				//按偏移量升序整理提取的属性列表
 	char* columntoInsert = (char*)calloc(1, sizeof(char) * recordSize);
 	for (int i; i < nValues; i++) {
 		if ((values + i)->type != (rgstSyscolumns + i)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
@@ -533,11 +538,17 @@ RC Insert(char* relName, int nValues, Value* values) {
 		}
 		else
 			memcpy(columntoInsert + (rgstSyscolumns + i)->attroffset, (values + i)->data, (rgstSyscolumns + i)->attrlength);		//复制内容
+
+		rid->bValid = false;
+		rc = InsertRec(hTable, columntoInsert, rid);				//插入记录
+		if (rc != SUCCESS)return rc;
+
+		if ((rgstSyscolumns + i)->ix_flag == '0')					//有索引则尝试打开索引
+			rc = OpenIndex((rgstSyscolumns + i)->indexname, hIndex);
+		if (rc != SUCCESS)return rc;
+		rc = InsertEntry(hIndex, columntoInsert, rid);				//插入索引项
+		if (rc != SUCCESS)return rc;
 	}
-	RID* rid = (RID*)malloc(sizeof(RID));
-	rid->bValid = false;
-	rc = InsertRec(hTable, columntoInsert, rid);			//插入记录
-	if (rc != SUCCESS)return rc;
 
 	free(rid);
 	free(rgstSyscolumns);
@@ -547,26 +558,12 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS)return rc;
 	rc = RM_CloseFile(hTable);
 	if (rc != SUCCESS)return rc;
+	rc = CloseIndex(hIndex);
+	if (rc != SUCCESS)return rc;
 
 	free(hSyscolumns);						//释放句柄
 	free(hTable);
-
-
-	//查找索引……暂时不清楚怎么做
-	//char** indexGroup = (char**)calloc(1, sizeof(char*) * 128);
-	//char* indexName = (char*)calloc(1, sizeof(char) * 21);
-
-	//rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
-	//if (rc != SUCCESS) return rc;
-	//while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
-	//	if (strcmp(relName, syscolumnsRec->pData) == 0) {
-	//		if (*((syscolumnsRec->pData) + 42 + 3 * sizeof(int)) == '1') {								//检查是否有索引
-	//			//indexName = (syscolumnsRec->pData) + 42 + 3 * sizeof(int) + sizeof(char);				//提取索引名称
-	//		}
-	//		DeleteRec(hSyscolumns, &(syscolumnsRec->rid));												//从表中删除记录
-	//	}
-	//}
-	//FileScan->bOpen = false;
+	free(hIndex);
 
 	return SUCCESS;
 }
