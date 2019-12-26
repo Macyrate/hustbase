@@ -479,7 +479,6 @@ bool ColCmp(SysColumn& col1, SysColumn& col2) {
 	return col1.attroffset < col2.attroffset;
 }
 
-//基本完成，未测试
 //该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
 //函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
@@ -599,11 +598,46 @@ RC Insert(char* relName, int nValues, Value* values) {
 	return SUCCESS;
 }
 
-//未完成
+//未完成，施工中
 //该函数用来删除relName表中所有满足指定条件的元组以及该元组对应的索引项。
 //如果没有指定条件，则此方法删除relName关系中所有元组。
 //如果包含多个条件，则这些条件之间为与关系。
 RC Delete(char* relName, int nConditions, Condition* conditions) {
+	RC rc;
+	RM_FileHandle* hSystables, * hSyscolumns, * hTable;
+	IX_IndexHandle* hIndex;
+	RM_FileScan* FileScan;
+	RID* rid;
+
+	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
+	rid = (RID*)malloc(sizeof(RID));
+
+	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan->bOpen = false;
+
+	hSystables->bOpen = false;
+	hSyscolumns->bOpen = false;
+	hTable->bOpen = false;
+
+	//打开系统表文件、列文件和数据表文件
+	rc = RM_OpenFile("SYSTABLES", hSystables);
+	if (rc != SUCCESS) return rc;
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS) return rc;
+	rc = RM_OpenFile(relName, hTable);
+	if (rc != SUCCESS) return rc;
+
+	//构造暂存搜索结果
+	RM_Record* systablesRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	systablesRec->bValid = false;
+	syscolumnsRec->bValid = false;
+	tableRec->bValid = false;
+
 	return SUCCESS;
 }
 
