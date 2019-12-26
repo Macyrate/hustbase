@@ -143,7 +143,7 @@ RC execute(char* sql) {
 
 		case 2:
 			//判断SQL语句为insert语句
-			Insert(sql_str->sstr.ins.relName, sql_str->sstr.ins.nValues, sql_str->sstr.ins.values);
+			rc = Insert(sql_str->sstr.ins.relName, sql_str->sstr.ins.nValues, sql_str->sstr.ins.values);
 			break;
 		case 3:
 			//判断SQL语句为update语句
@@ -473,6 +473,10 @@ RC Insert(char* relName, int nValues, Value* values) {
 
 	rgstSyscolumns = (SysColumn*)calloc(nValues, sizeof(SysColumn));
 
+	hSystables->bOpen = false;
+	hSyscolumns->bOpen = false;
+	hTable->bOpen = false;
+
 	//打开系统表文件、列文件和数据表文件
 	rc = RM_OpenFile("SYSTABLES", hSystables);
 	if (rc != SUCCESS) return rc;
@@ -480,9 +484,6 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS) return rc;
 	rc = RM_OpenFile(relName, hTable);
 	if (rc != SUCCESS) return rc;
-	hSystables->bOpen = false;
-	hSyscolumns->bOpen = false;
-	hTable->bOpen = false;
 
 	//构造暂存搜索结果
 	RM_Record* systablesRec = (RM_Record*)calloc(1, sizeof(RM_Record));
@@ -497,12 +498,12 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS) return rc;
 	int columnsNum = 0;
 	while (GetNextRec(FileScan, systablesRec) == SUCCESS) {
-		if (strcmp(relName, syscolumnsRec->pData) == 0) {
-			columnsNum = *(int*)((syscolumnsRec->pData) + 21);		//提取属性数量
+		if (strcmp(relName, systablesRec->pData) == 0) {
+			columnsNum = *(int*)((systablesRec->pData) + 21);		//提取属性数量
 			break;
 		}
 	}
-	FileScan->bOpen = false;										//关闭扫描
+	CloseScan(FileScan);
 	RM_CloseFile(hSystables);
 	free(hSystables);
 
@@ -519,36 +520,38 @@ RC Insert(char* relName, int nValues, Value* values) {
 		memcpy(&((rgstSyscolumns + i)->attrlength), syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));													//提取属性类型
 		memcpy(&((rgstSyscolumns + i)->attroffset), syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));					//提取属性偏移量
 		memcpy(&((rgstSyscolumns + i)->ix_flag), syscolumnsRec->pData + 42 + sizeof(int) * 3, sizeof(char));					//提取索引标志
-		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), sizeof(char));		//提取索引标志
+		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), 21);				//提取索引名称
 
 		recordSize += (rgstSyscolumns + i)->attrlength;			//计算要构造的元组总长度
 	}
 	CloseScan(FileScan);
-	free(FileScan);
+	//free(FileScan);
 
 	//检查values是否与目的表属性列表一致，构造元组，添加索引记录
 	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);				//按偏移量升序整理提取的属性列表
 	char* columntoInsert = (char*)calloc(1, sizeof(char) * recordSize);
-	for (int i; i < nValues; i++) {
-		if ((values + i)->type != (rgstSyscolumns + i)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
+	for (int i = 0; i < nValues; i++) {
+		if ((values + i)->type != (rgstSyscolumns + nValues - i - 1)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
 		if ((values + i)->type == AttrType::chars) {													//如果属性类型是字符串	
-			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + i)->attrlength)					//检查要插入的字符串是否过长
+			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + +nValues - i - 1)->attrlength)					//检查要插入的字符串是否过长
 				return SQL_SYNTAX;
-			memcpy(columntoInsert + (rgstSyscolumns + i)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));		//复制字符串长度的内容
+			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));		//复制字符串长度的内容
 		}
 		else
-			memcpy(columntoInsert + (rgstSyscolumns + i)->attroffset, (values + i)->data, (rgstSyscolumns + i)->attrlength);		//复制内容
+			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, (rgstSyscolumns + +nValues - i - 1)->attrlength);		//复制内容
 
-		rid->bValid = false;
-		rc = InsertRec(hTable, columntoInsert, rid);				//插入记录
-		if (rc != SUCCESS)return rc;
-
-		if ((rgstSyscolumns + i)->ix_flag == '0')					//有索引则尝试打开索引
-			rc = OpenIndex((rgstSyscolumns + i)->indexname, hIndex);
-		if (rc != SUCCESS)return rc;
-		rc = InsertEntry(hIndex, columntoInsert, rid);				//插入索引项
-		if (rc != SUCCESS)return rc;
+		if ((rgstSyscolumns + +nValues - i - 1)->ix_flag != '0')					//有索引则尝试打开索引
+		{
+			rc = OpenIndex((rgstSyscolumns + +nValues - i - 1)->indexname, hIndex);
+			if (rc != SUCCESS)return rc;
+			rc = InsertEntry(hIndex, columntoInsert, rid);				//插入索引项
+			if (rc != SUCCESS)return rc;
+		}
 	}
+
+	rid->bValid = false;
+	rc = InsertRec(hTable, columntoInsert, rid);				//插入记录
+	if (rc != SUCCESS)return rc;
 
 	free(rid);
 	free(rgstSyscolumns);
@@ -558,12 +561,12 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS)return rc;
 	rc = RM_CloseFile(hTable);
 	if (rc != SUCCESS)return rc;
-	rc = CloseIndex(hIndex);
-	if (rc != SUCCESS)return rc;
+	//rc = CloseIndex(hIndex);
+	//if (rc != SUCCESS)return rc;
 
 	free(hSyscolumns);						//释放句柄
 	free(hTable);
-	free(hIndex);
+	//free(hIndex);
 
 	return SUCCESS;
 }
