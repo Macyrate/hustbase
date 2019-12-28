@@ -544,7 +544,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
 		memcpy((rgstSyscolumns + i)->attrname, syscolumnsRec->pData + 21, 21);													//提取属性名
 		memcpy(&((rgstSyscolumns + i)->attrtype), syscolumnsRec->pData + 42, sizeof(int));										//提取属性类型
-		memcpy(&((rgstSyscolumns + i)->attrlength), syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));													//提取属性类型
+		memcpy(&((rgstSyscolumns + i)->attrlength), syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));						//提取属性类型
 		memcpy(&((rgstSyscolumns + i)->attroffset), syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));					//提取属性偏移量
 		memcpy(&((rgstSyscolumns + i)->ix_flag), syscolumnsRec->pData + 42 + sizeof(int) * 3, sizeof(char));					//提取索引标志
 		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), 21);				//提取索引名称
@@ -555,14 +555,14 @@ RC Insert(char* relName, int nValues, Value* values) {
 	//free(FileScan);
 
 	//检查values是否与目的表属性列表一致，构造元组，添加索引记录
-	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);				//按偏移量升序整理提取的属性列表
+	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);							//按偏移量升序整理提取的属性列表
 	char* columntoInsert = (char*)calloc(1, sizeof(char) * recordSize);
 	for (int i = 0; i < nValues; i++) {
 		if ((values + i)->type != (rgstSyscolumns + nValues - i - 1)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
-		if ((values + i)->type == AttrType::chars) {													//如果属性类型是字符串	
-			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + +nValues - i - 1)->attrlength)					//检查要插入的字符串是否过长
+		if ((values + i)->type == AttrType::chars) {																//如果属性类型是字符串	
+			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + +nValues - i - 1)->attrlength)				//检查要插入的字符串是否过长
 				return SQL_SYNTAX;
-			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));		//复制字符串长度的内容
+			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));					//复制字符串长度的内容
 		}
 		else
 			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, (rgstSyscolumns + +nValues - i - 1)->attrlength);		//复制内容
@@ -571,13 +571,13 @@ RC Insert(char* relName, int nValues, Value* values) {
 		{
 			rc = OpenIndex((rgstSyscolumns + +nValues - i - 1)->indexname, hIndex);
 			if (rc != SUCCESS)return rc;
-			rc = InsertEntry(hIndex, columntoInsert, rid);				//插入索引项
+			rc = InsertEntry(hIndex, columntoInsert, rid);							//插入索引项
 			if (rc != SUCCESS)return rc;
 		}
 	}
 
 	rid->bValid = false;
-	rc = InsertRec(hTable, columntoInsert, rid);				//插入记录
+	rc = InsertRec(hTable, columntoInsert, rid);					//插入记录
 	if (rc != SUCCESS)return rc;
 
 	free(rid);
@@ -637,6 +637,102 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	systablesRec->bValid = false;
 	syscolumnsRec->bValid = false;
 	tableRec->bValid = false;
+
+	//开始将传入的条件转换为扫描条件
+	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
+	Con* checkerCons = (Con*)calloc(2, sizeof(Con));
+
+	//为了检测Delete的条件是否合法，构造对SYSCOLUMNS的扫描条件
+
+	//扫描条件1：表名为relName
+	checkerCons[0].bLhsIsAttr = 1;
+	checkerCons[0].LattrLength = 21;
+	checkerCons[0].LattrOffset = 0;
+	checkerCons[0].compOp = CompOp::EQual;
+	checkerCons[0].bRhsIsAttr = 0;
+	checkerCons[0].Rvalue = relName;
+	checkerCons[0].attrType = chars;
+
+	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
+	checkerCons[1].bLhsIsAttr = 1;
+	checkerCons[1].LattrLength = 21;
+	checkerCons[1].LattrOffset = 21;
+	checkerCons[1].compOp = CompOp::EQual;
+	checkerCons[1].bRhsIsAttr = 0;
+	for (int i = 0; i < nConditions; i++) {
+		//左属性，右值
+		int valueType = 0;
+		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
+			checkerCons[1].Rvalue = conditions[i].lhsAttr.attrName;
+			valueType = conditions[i].rhsValue.type;
+		}
+		//左值，右属性
+		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
+			checkerCons[1].Rvalue = conditions[i].rhsAttr.attrName;
+			valueType = conditions[i].lhsValue.type;
+		}
+		//左右均为属性
+		else if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 1) {
+			//咋写？有机会再加吧
+			return SQL_SYNTAX;
+		}
+		//其他情况，报错
+		else {
+			return SQL_SYNTAX;
+		}
+
+		//开始对SYSCOLUMNS进行扫描
+
+		//检测条件中的值类型是否与SYSCOLUMNS中所记的一致
+		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
+		if (rc != SUCCESS)return rc;
+		rc = GetNextRec(FileScan, syscolumnsRec);
+		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
+		int attrType = 0, attrLength = 0, attrOffset = 0;
+		memcpy(&attrType, syscolumnsRec->pData + 42, sizeof(int));		//提取属性类型
+		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
+			return SQL_SYNTAX;
+		}
+		memcpy(&attrLength, syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));			//提取属性长度
+		memcpy(&attrOffset, syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));		//提取属性偏移量
+
+
+		//语义检测通过，构造扫描条件
+		cons[i].bLhsIsAttr = 1;
+		cons[i].bRhsIsAttr = 0;
+		cons[i].LattrLength = attrLength;
+		cons[i].LattrOffset = attrOffset;
+		cons[i].compOp = conditions[i].op;
+
+		if (conditions[i].bLhsIsAttr == 1) {
+			cons[i].attrType = conditions[i].rhsValue.type;
+			cons[i].Rvalue = conditions[i].rhsValue.data;
+		}
+		else {
+			cons[i].attrType = conditions[i].lhsValue.type;
+			cons[i].Rvalue = conditions[i].lhsValue.data;
+		}
+		CloseScan(FileScan);
+	}
+	RM_CloseFile(hSyscolumns);
+	free(hSyscolumns);
+	free(syscolumnsRec);
+	free(checkerCons);
+
+	//对数据表进行扫描
+	rc = OpenScan(FileScan, hTable, nConditions, cons);
+	if (rc != SUCCESS)return rc;
+	while (GetNextRec(FileScan, tableRec) == SUCCESS) {
+		DeleteRec(hTable, &tableRec->rid);				//删除记录
+	}
+
+	CloseScan(FileScan);
+	free(FileScan);
+	rc = RM_CloseFile(hTable);
+	if (rc != SUCCESS)return rc;
+	free(hTable);
+	free(cons);
+	free(tableRec);
 
 	return SUCCESS;
 }
