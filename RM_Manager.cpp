@@ -171,8 +171,9 @@ GetNextRec_REDO:
 
 				//左边是值
 				//将值拷贝进待比较的区域
+				//使用右边属性的长度作为值的长度，这要求参与比较的字符串等长
 
-				for (int i = 0; i < condition.LattrLength; i++)
+				for (int i = 0; i < condition.RattrLength; i++)
 				{
 					leftChars[i] = ((char*)condition.Lvalue)[i];
 				}
@@ -198,8 +199,9 @@ GetNextRec_REDO:
 
 				//右边是值
 				//将值拷贝进待比较的区域
+				//使用左边属性的长度作为值的长度，这要求参与比较的字符串等长
 
-				for (int i = 0; i < condition.RattrLength; i++)
+				for (int i = 0; i < condition.LattrLength; i++)
 				{
 					rightChars[i] = ((char*)condition.Rvalue)[i];
 				}
