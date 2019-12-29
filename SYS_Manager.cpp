@@ -649,9 +649,10 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	checkerCons[0].LattrLength = 21;
 	checkerCons[0].LattrOffset = 0;
 	checkerCons[0].compOp = CompOp::EQual;
-	checkerCons[0].bRhsIsAttr = 0;
-	checkerCons[0].Rvalue = relName;
 	checkerCons[0].attrType = chars;
+	checkerCons[0].bRhsIsAttr = 0;
+	checkerCons[0].Rvalue = (void*)calloc(1, 21);
+	memcpy(checkerCons[0].Rvalue, relName, 21);
 
 	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
 	checkerCons[1].bLhsIsAttr = 1;
@@ -659,16 +660,17 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	checkerCons[1].LattrOffset = 21;
 	checkerCons[1].compOp = CompOp::EQual;
 	checkerCons[1].bRhsIsAttr = 0;
+	checkerCons[1].Rvalue = (void*)calloc(1, 21);
 	for (int i = 0; i < nConditions; i++) {
 		//左属性，右值
 		int valueType = 0;
 		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
-			checkerCons[1].Rvalue = conditions[i].lhsAttr.attrName;
+			memcpy(checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName, 21);
 			valueType = conditions[i].rhsValue.type;
 		}
 		//左值，右属性
 		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
-			checkerCons[1].Rvalue = conditions[i].rhsAttr.attrName;
+			memcpy(checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName, 21);
 			valueType = conditions[i].lhsValue.type;
 		}
 		//左右均为属性
@@ -706,11 +708,13 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 
 		if (conditions[i].bLhsIsAttr == 1) {
 			cons[i].attrType = conditions[i].rhsValue.type;
-			cons[i].Rvalue = conditions[i].rhsValue.data;
+			cons[i].Rvalue = (void*)calloc(1, attrLength);
+			memcpy(cons[i].Rvalue, conditions[i].rhsValue.data, attrLength);
 		}
 		else {
 			cons[i].attrType = conditions[i].lhsValue.type;
-			cons[i].Rvalue = conditions[i].lhsValue.data;
+			cons[i].Rvalue = (void*)calloc(1, attrLength);
+			memcpy(cons[i].Rvalue, conditions[i].lhsValue.data, attrLength);
 		}
 		CloseScan(FileScan);
 	}
