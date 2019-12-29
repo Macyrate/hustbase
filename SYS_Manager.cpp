@@ -731,7 +731,7 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	}
 
 	CloseScan(FileScan);
-	free(FileScan);
+	//free(FileScan);
 	rc = RM_CloseFile(hTable);
 	if (rc != SUCCESS)return rc;
 	free(hTable);
