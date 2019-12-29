@@ -145,11 +145,11 @@ GetNextRec_REDO:
 
 			//分别生成左右字符串以便于比较
 
-			leftChars = (char*)malloc(sizeof(char) * (condition.LattrLength + 1));
-			leftChars[condition.LattrLength] = '\0';
+			leftChars = (char*)malloc(sizeof(char) * ((condition.bLhsIsAttr == 1) ? (condition.LattrLength + 1) : (condition.RattrLength + 1)));
+			leftChars[(condition.bLhsIsAttr == 1) ? condition.LattrLength : condition.RattrLength] = '\0';
 
-			rightChars = (char*)malloc(sizeof(char) * (condition.RattrLength + 1));
-			rightChars[condition.RattrLength] = '\0';
+			rightChars = (char*)malloc(sizeof(char) * ((condition.bRhsIsAttr == 1) ? (condition.RattrLength + 1) : (condition.LattrLength + 1)));
+			rightChars[(condition.bRhsIsAttr == 1) ? condition.RattrLength : condition.LattrLength] = '\0';
 
 			//将数据填充进去
 			//判断左边是属性还是值
