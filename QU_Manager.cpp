@@ -10,6 +10,50 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int n
 	return SUCCESS;
 }
 
+//用于朝记录集里添加若干条记录
+//未测试
+RC AddResult(SelResult* res, int nData, char** data)
+{
+
+	//寻找整条链的尾部
+
+	SelResult* current = res;
+	while (current->next_res != NULL)
+	{
+		current = current->next_res;
+	}
+
+	//计算每条记录的长度
+
+	int totalLength = 0;
+	for (int i = 0; i < current->col_num; i++)
+	{
+		totalLength += current->length[i];
+	}
+
+	//对于每一条要添加的记录
+
+	for (int i = 0; i < nData; i++)
+	{
+
+		//若已经到达100条记录，则开辟新的SelResult
+
+		if (current->col_num == 100)
+		{
+			SelResult* nextResult = (SelResult*)malloc(sizeof(SelResult));
+			Init_Result(nextResult, current);
+			current = nextResult;
+		}
+
+		//添加记录
+		memcpy(current->res[current->col_num++], data[i], totalLength * sizeof(char));
+
+	}
+
+	return SUCCESS;
+
+}
+
 //用于构建一个和对应表名与sel子句对应的空的SelResult*
 //未测试
 RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs)

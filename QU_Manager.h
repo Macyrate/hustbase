@@ -22,7 +22,7 @@ typedef struct
 } Attr;
 
 RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int nOutputAttrs, Attr* attrs);
-
+RC AddResult(SelResult* res, int nData, char** data);
 RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs);
 RC Init_Result(SelResult* res, SelResult* father);
 
