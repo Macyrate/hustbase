@@ -16,6 +16,8 @@ typedef struct SelResult {
 typedef struct
 {
 	char attrName[21];
+	AttrType type;
+	int size;
 	int offset;
 } Attr;
 
