@@ -336,7 +336,8 @@ GetNextRec_REDO:
 			(less && condition.compOp == GEqual) ||
 			(greater && condition.compOp == LEqual) ||
 			(lessEqual && condition.compOp == GreatT) ||
-			(greaterEqual && condition.compOp == LessT))
+			(greaterEqual && condition.compOp == LessT) ||
+			((!equal) && condition.compOp == EQual))
 		{
 			goto GetNextRec_REDO;
 		}
