@@ -657,7 +657,10 @@ RC Insert(char* relName, int nValues, Value* values) {
 	rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
 	if (rc != SUCCESS) return rc;
 	int recordSize = 0;
-	for (int i = 0; i < nValues && GetNextRec(FileScan, syscolumnsRec) == SUCCESS; i++) {
+	int i = 0;
+	while(GetNextRec(FileScan,syscolumnsRec)==SUCCESS && i<nValues){
+		if (strcmp(relName, syscolumnsRec->pData) != 0)
+			continue;		//跳过非要扫描的表
 		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
 		memcpy((rgstSyscolumns + i)->attrname, syscolumnsRec->pData + 21, 21);													//提取属性名
 		memcpy(&((rgstSyscolumns + i)->attrtype), syscolumnsRec->pData + 42, sizeof(int));										//提取属性类型
@@ -667,6 +670,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), 21);				//提取索引名称
 
 		recordSize += (rgstSyscolumns + i)->attrlength;			//计算要构造的元组总长度
+		i++;
 	}
 	CloseScan(FileScan);
 	//free(FileScan);
@@ -775,7 +779,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	rid = (RID*)malloc(sizeof(RID));
 	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
 	FileScan->bOpen = false;
-	
+
 	//对传入conditions进行语义分析，得到扫描条件
 	GetScanCons(relName, nConditions, conditions, cons);
 
