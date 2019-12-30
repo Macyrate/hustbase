@@ -589,6 +589,7 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 	free(hSyscolumns);
 	free(syscolumnsRec);
 	free(checkerCons);
+	return SUCCESS;
 }
 
 //该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
@@ -721,6 +722,9 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	RM_FileHandle* hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
 	tableRec->bValid = false;
+
+	rc = RM_OpenFile(relName, hTable);
+	if (rc != SUCCESS)return rc;
 
 	//对传入conditions进行语义分析，得到扫描条件
 	GetScanCons(relName, nConditions, conditions, cons);
