@@ -22,7 +22,37 @@ void Destory_Result(SelResult* res)
 	}
 }
 
+//未完成
 RC Query(char* sql, SelResult* res)
 {
-	return SUCCESS;
+
+	//储存语法分析结果
+
+	sqlstr* sql_str = NULL;
+	RC rc;
+
+	//初始化sql_str
+
+	sql_str = get_sqlstr();
+
+	//语法分析
+
+	rc = parse(sql, sql_str);
+
+	if (rc == SUCCESS && sql_str->flag == 1)
+	{
+
+		//是合规的语法并且是select语句
+
+		
+
+	}
+	else
+	{
+
+		//有语法错误或者不是select语句
+
+		return SQL_SYNTAX;
+
+	}
 }
