@@ -5,7 +5,7 @@
 
 //指定表名，将对应的属性名称从混杂的selAttrs中分离出来，并得到其Offset
 //TODO: 等待老司机编写
-RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int nOutputAttrs, Attr* attrs)
+RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int nOutputAttrs, Attr* attrs)
 {
 	return SUCCESS;
 }
@@ -56,54 +56,38 @@ RC AddResult(SelResult* res, int nData, char** data)
 
 //用于构建一个和对应表名与sel子句对应的空的SelResult*
 //未测试
-RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs)
+RC Init_Result(SelResult* res, char* relName, int nAttrs, Attr* attrs)
 {
 
 	RC rc;
 
-	//获取属于relName的属性信息
+	//成功拿到属于此表的属性
+	//初始化SelResult
 
-	int nAttrs = 0;
-	Attr* attrs = (Attr*)malloc(sizeof(Attr));
-	rc = GetAttrsByRelName(relName, nSelAttrs, selAttrs, nAttrs, attrs);
+	res->col_num = nAttrs;
+	res->row_num = 0;
+	res->next_res = NULL;
 
-	if (rc == SUCCESS)
+	int currentOffset = 0;
+	for (int i = 0; i < nAttrs; i++)
 	{
 
-		//成功拿到属于此表的属性
-		//初始化SelResult
+		//对于每个列，填充信息
 
-		res->col_num = nAttrs;
-		res->row_num = 0;
-		res->next_res = NULL;
+		strcpy(res->fields[i], attrs[i].attrName);
+		res->length[i] = attrs[i].size;
+		res->offset[i] = currentOffset;
+		res->type[i] = attrs[i].type;
 
-		for (int i = 0; i < nAttrs; i++)
-		{
-
-			//对于每个列，填充信息
-
-			strcpy(res->fields[i], attrs[i].attrName);
-			res->length[i] = attrs[i].size;
-			res->offset[i] = attrs[i].offset;
-			res->type[i] = attrs[i].type;
-
-		}
-
-		//释放资源，返回成功
-
-		free(attrs);
-		return SUCCESS;
+		currentOffset += res->length[i];
 
 	}
-	else
-	{
 
-		//释放资源并返回错误信息
+	//释放资源，返回成功
 
-		free(attrs);
-		return rc;
+	free(attrs);
+	return SUCCESS;
 
-	}
 }
 
 //用于构建超过100条记录后的下一个SelResult
@@ -189,6 +173,9 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 	RC rc;
 
 	//首先分表扫描，然后投影并拼接
+	//声明一个用于储存各表扫描结果的数组
+
+	SelResult* singleResults = (SelResult*)malloc(nRelations * sizeof(SelResult));
 
 	for (int i = 0; i < nRelations; i++)
 	{
@@ -196,40 +183,90 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		//当前表名
 
 		char* currentRelName = relations[i];
+		SelResult currentResult = singleResults[i];
 
-		//对于每一张表（关系）构造扫描条件
+		//初始化当前表的扫描结果集合
 
-		Con* cons = (Con*)malloc(nConditions * sizeof(Con));
-		rc = GetScanCons(currentRelName, nConditions, conditions, cons);
+		int nAttrs = 0;
+		Attr* currentAttrs = (Attr*)malloc(sizeof(Attr));
+		rc = GetAttrsByRelName(currentRelName, nSelAttrs, selAttrs, nAttrs, currentAttrs);
 
 		if (rc == SUCCESS)
 		{
 
-			//成功构造扫描条件
-			//使用条件进行扫描
-			//打开对应的表文件
+			Init_Result(&currentResult, currentRelName, nAttrs, currentAttrs);
 
-			RM_FileHandle* relHandle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
-			relHandle->bOpen = false;
-			rc = RM_OpenFile(currentRelName, relHandle);
+			//对于每一张表（关系）构造扫描条件
+
+			Con* cons = (Con*)malloc(nConditions * sizeof(Con));
+			rc = GetScanCons(currentRelName, nConditions, conditions, cons);
 
 			if (rc == SUCCESS)
 			{
 
-				//打开表文件成功
-				//构造并开启扫描句柄
+				//成功构造扫描条件
+				//使用条件进行扫描
+				//打开对应的表文件
 
-				RM_FileScan* scanner = (RM_FileScan*)malloc(sizeof(RM_FileScan));
-				scanner->bOpen = false;
-				rc = OpenScan(scanner, relHandle, nConditions, cons);
+				RM_FileHandle* relHandle = (RM_FileHandle*)malloc(sizeof(RM_FileHandle));
+				relHandle->bOpen = false;
+				rc = RM_OpenFile(currentRelName, relHandle);
 
 				if (rc == SUCCESS)
 				{
 
-					//启动扫描成功
-					//对当前表进行扫描拼接
+					//打开表文件成功
+					//构造并开启扫描句柄
 
-					//TODO
+					RM_FileScan* scanner = (RM_FileScan*)malloc(sizeof(RM_FileScan));
+					scanner->bOpen = false;
+					rc = OpenScan(scanner, relHandle, nConditions, cons);
+
+					if (rc == SUCCESS)
+					{
+
+						//启动扫描成功
+						//对当前表进行扫描拼接
+
+						char** data = (char**)malloc(MAX_SINGLE_REL_RES_NUM * sizeof(char*));
+						int nData = 0;
+						RM_Record* currentRec = (RM_Record*)malloc(sizeof(RM_Record));
+						while (GetNextRec(scanner, currentRec) == SUCCESS)
+						{
+
+							//对于每条满足条件的记录，在拼接时完成投影
+
+							for (int j = 0; j < currentResult.col_num; j++)
+							{
+
+								//对于每一个属于该表的列
+
+								memcpy(data[nData++] + currentResult.offset[j], currentRec->pData + currentAttrs[j].offset, currentResult.length[j] * sizeof(char));
+
+							}
+
+						}
+
+						//朝当前表的扫描记录集合内添加
+
+						AddResult(&currentResult, nData, data);
+
+						//至此，扫描拼接投影完成
+
+					}
+					else
+					{
+
+						//释放资源并返回错误信息
+
+						free(scanner);
+						free(relHandle);
+						free(cons);
+						free(currentAttrs);
+						free(singleResults);
+						return rc;
+
+					}
 
 				}
 				else
@@ -237,9 +274,10 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 					//释放资源并返回错误信息
 
-					free(scanner);
 					free(relHandle);
 					free(cons);
+					free(currentAttrs);
+					free(singleResults);
 					return rc;
 
 				}
@@ -248,25 +286,31 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 			else
 			{
 
-				//释放资源并返回错误信息
+				//释放资源，返回错误信息
 
-				free(relHandle);
 				free(cons);
+				free(currentAttrs);
+				free(singleResults);
 				return rc;
 
 			}
-
 		}
 		else
 		{
 
 			//释放资源，返回错误信息
 
-			free(cons);
+			free(currentAttrs);
+			free(singleResults);
 			return rc;
 
 		}
 
 	}
+
+	//进行笛卡尔积的计算
+
+	//TODO
+
 	return SUCCESS;
 }

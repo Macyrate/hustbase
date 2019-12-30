@@ -2,6 +2,8 @@
 #define __QUERY_MANAGER_H_
 #include "str.h"
 
+#define MAX_SINGLE_REL_RES_NUM 4096
+
 typedef struct SelResult {
 	int col_num;
 	int row_num;
@@ -21,9 +23,9 @@ typedef struct
 	int offset;
 } Attr;
 
-RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int nOutputAttrs, Attr* attrs);
+RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int nOutputAttrs, Attr* attrs);
 RC AddResult(SelResult* res, int nData, char** data);
-RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs);
+RC Init_Result(SelResult* res, char* relName, int nAttrs, Attr* Attrs);
 RC Init_Result(SelResult* res, SelResult* father);
 
 void Destory_Result(SelResult* res);
