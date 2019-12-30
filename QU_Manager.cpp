@@ -13,7 +13,52 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int n
 //用于构建一个和对应表名与sel子句对应的空的SelResult*
 RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs)
 {
-	return SUCCESS;
+
+	RC rc;
+
+	//获取属于relName的属性信息
+
+	int nAttrs = 0;
+	Attr* attrs = (Attr*)malloc(sizeof(Attr));
+	rc = GetAttrsByRelName(relName, nSelAttrs, selAttrs, nAttrs, attrs);
+
+	if (rc == SUCCESS)
+	{
+
+		//成功拿到属于此表的属性
+		//初始化SelResult
+
+		res->col_num = nAttrs;
+		res->row_num = 0;
+		res->next_res = NULL;
+
+		for (int i = 0; i < nAttrs; i++)
+		{
+
+			//对于每个列，填充信息
+
+			strcpy(res->fields[i], attrs[i].attrName);
+			res->length[i] = attrs[i].size;
+			res->offset[i] = attrs[i].offset;
+			res->type[i] = attrs[i].type;
+
+		}
+
+		//释放资源，返回成功
+
+		free(attrs);
+		return SUCCESS;
+
+	}
+	else
+	{
+
+		//释放资源并返回错误信息
+
+		free(attrs);
+		return rc;
+
+	}
 }
 
 void Destory_Result(SelResult* res)
