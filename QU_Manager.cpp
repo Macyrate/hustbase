@@ -56,3 +56,9 @@ RC Query(char* sql, SelResult* res)
 
 	}
 }
+
+//Î´Íê³É
+RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, int nConditions, Condition* conditions, SelResult* res)
+{
+	
+}
