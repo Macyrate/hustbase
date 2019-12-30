@@ -479,6 +479,119 @@ bool ColCmp(SysColumn& col1, SysColumn& col2) {
 	return col1.attroffset < col2.attroffset;
 }
 
+RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCons) {
+	RC rc;
+	RM_FileHandle* hSyscolumns;
+	//IX_IndexHandle* hIndex;
+	RM_FileScan* FileScan;
+	RID* rid;
+
+	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	//hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	//hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
+	rid = (RID*)malloc(sizeof(RID));
+
+	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan->bOpen = false;
+
+	hSyscolumns->bOpen = false;
+
+	//打开系统列文件和数据表文件
+	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
+	if (rc != SUCCESS) return rc;
+
+	//构造暂存搜索结果
+	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	//RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	syscolumnsRec->bValid = false;
+	//tableRec->bValid = false;
+
+	//开始将传入的条件转换为扫描条件
+	Con* checkerCons = (Con*)calloc(2, sizeof(Con));
+
+	//为了检测Delete的条件是否合法，构造对SYSCOLUMNS的扫描条件
+
+	//扫描条件1：表名为relName
+	checkerCons[0].bLhsIsAttr = 1;
+	checkerCons[0].LattrLength = 21;
+	checkerCons[0].LattrOffset = 0;
+	checkerCons[0].compOp = CompOp::EQual;
+	checkerCons[0].attrType = chars;
+	checkerCons[0].bRhsIsAttr = 0;
+	checkerCons[0].Rvalue = (void*)calloc(1, 21);
+	memcpy(checkerCons[0].Rvalue, relName, 21);
+
+	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
+	checkerCons[1].bLhsIsAttr = 1;
+	checkerCons[1].LattrLength = 21;
+	checkerCons[1].LattrOffset = 21;
+	checkerCons[1].compOp = CompOp::EQual;
+	checkerCons[1].bRhsIsAttr = 0;
+	checkerCons[1].Rvalue = (void*)calloc(1, 21);
+	for (int i = 0; i < nConditions; i++) {
+		//左属性，右值
+		int valueType = 0;
+		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
+			memcpy(checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName, 21);
+			valueType = conditions[i].rhsValue.type;
+		}
+		//左值，右属性
+		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
+			memcpy(checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName, 21);
+			valueType = conditions[i].lhsValue.type;
+		}
+		//左右均为属性
+		else if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 1) {
+			//咋写？有机会再加吧
+			return SQL_SYNTAX;
+		}
+		//其他情况，报错
+		else {
+			return SQL_SYNTAX;
+		}
+
+		//开始对SYSCOLUMNS进行扫描
+
+		//检测条件中的值类型是否与SYSCOLUMNS中所记的一致
+		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
+		if (rc != SUCCESS)return rc;
+		rc = GetNextRec(FileScan, syscolumnsRec);
+		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
+		int attrType = 0, attrLength = 0, attrOffset = 0;
+		memcpy(&attrType, syscolumnsRec->pData + 42, sizeof(int));		//提取属性类型
+		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
+			return SQL_SYNTAX;
+		}
+		memcpy(&attrLength, syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));			//提取属性长度
+		memcpy(&attrOffset, syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));		//提取属性偏移量
+
+
+		//语义检测通过，构造扫描条件
+		retCons[i].bLhsIsAttr = 1;
+		retCons[i].bRhsIsAttr = 0;
+		retCons[i].LattrLength = attrLength;
+		retCons[i].LattrOffset = attrOffset;
+		retCons[i].compOp = conditions[i].op;
+
+		if (conditions[i].bLhsIsAttr == 1) {
+			retCons[i].attrType = conditions[i].rhsValue.type;
+			retCons[i].Rvalue = (void*)calloc(1, attrLength);
+			memcpy(retCons[i].Rvalue, conditions[i].rhsValue.data, attrLength);
+		}
+		else {
+			retCons[i].attrType = conditions[i].lhsValue.type;
+			retCons[i].Rvalue = (void*)calloc(1, attrLength);
+			memcpy(retCons[i].Rvalue, conditions[i].lhsValue.data, attrLength);
+		}
+		CloseScan(FileScan);
+	}
+	RM_CloseFile(hSyscolumns);
+	free(hSyscolumns);
+	free(syscolumnsRec);
+	free(checkerCons);
+	return SUCCESS;
+}
+
 //该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
 //函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
@@ -604,118 +717,17 @@ RC Insert(char* relName, int nValues, Value* values) {
 //如果包含多个条件，则这些条件之间为与关系。
 RC Delete(char* relName, int nConditions, Condition* conditions) {
 	RC rc;
-	RM_FileHandle* hSyscolumns, * hTable;
-	IX_IndexHandle* hIndex;
-	RM_FileScan* FileScan;
-	RID* rid;
-
-	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
-	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
-	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
-	rid = (RID*)malloc(sizeof(RID));
-
-	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
-	FileScan->bOpen = false;
-
-	hSyscolumns->bOpen = false;
-	hTable->bOpen = false;
-
-	//打开系统列文件和数据表文件
-	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
-	if (rc != SUCCESS) return rc;
-	rc = RM_OpenFile(relName, hTable);
-	if (rc != SUCCESS) return rc;
-
-	//构造暂存搜索结果
-	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
+	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	RM_FileHandle* hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
-	syscolumnsRec->bValid = false;
 	tableRec->bValid = false;
 
-	//开始将传入的条件转换为扫描条件
-	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
-	Con* checkerCons = (Con*)calloc(2, sizeof(Con));
+	rc = RM_OpenFile(relName, hTable);
+	if (rc != SUCCESS)return rc;
 
-	//为了检测Delete的条件是否合法，构造对SYSCOLUMNS的扫描条件
-
-	//扫描条件1：表名为relName
-	checkerCons[0].bLhsIsAttr = 1;
-	checkerCons[0].LattrLength = 21;
-	checkerCons[0].LattrOffset = 0;
-	checkerCons[0].compOp = CompOp::EQual;
-	checkerCons[0].attrType = chars;
-	checkerCons[0].bRhsIsAttr = 0;
-	checkerCons[0].Rvalue = (void*)calloc(1, 21);
-	memcpy(checkerCons[0].Rvalue, relName, 21);
-
-	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
-	checkerCons[1].bLhsIsAttr = 1;
-	checkerCons[1].LattrLength = 21;
-	checkerCons[1].LattrOffset = 21;
-	checkerCons[1].compOp = CompOp::EQual;
-	checkerCons[1].bRhsIsAttr = 0;
-	checkerCons[1].Rvalue = (void*)calloc(1, 21);
-	for (int i = 0; i < nConditions; i++) {
-		//左属性，右值
-		int valueType = 0;
-		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName, 21);
-			valueType = conditions[i].rhsValue.type;
-		}
-		//左值，右属性
-		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName, 21);
-			valueType = conditions[i].lhsValue.type;
-		}
-		//左右均为属性
-		else if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 1) {
-			//咋写？有机会再加吧
-			return SQL_SYNTAX;
-		}
-		//其他情况，报错
-		else {
-			return SQL_SYNTAX;
-		}
-
-		//开始对SYSCOLUMNS进行扫描
-
-		//检测条件中的值类型是否与SYSCOLUMNS中所记的一致
-		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
-		if (rc != SUCCESS)return rc;
-		rc = GetNextRec(FileScan, syscolumnsRec);
-		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
-		int attrType = 0, attrLength = 0, attrOffset = 0;
-		memcpy(&attrType, syscolumnsRec->pData + 42, sizeof(int));		//提取属性类型
-		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
-			return SQL_SYNTAX;
-		}
-		memcpy(&attrLength, syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));			//提取属性长度
-		memcpy(&attrOffset, syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));		//提取属性偏移量
-
-
-		//语义检测通过，构造扫描条件
-		cons[i].bLhsIsAttr = 1;
-		cons[i].bRhsIsAttr = 0;
-		cons[i].LattrLength = attrLength;
-		cons[i].LattrOffset = attrOffset;
-		cons[i].compOp = conditions[i].op;
-
-		if (conditions[i].bLhsIsAttr == 1) {
-			cons[i].attrType = conditions[i].rhsValue.type;
-			cons[i].Rvalue = (void*)calloc(1, attrLength);
-			memcpy(cons[i].Rvalue, conditions[i].rhsValue.data, attrLength);
-		}
-		else {
-			cons[i].attrType = conditions[i].lhsValue.type;
-			cons[i].Rvalue = (void*)calloc(1, attrLength);
-			memcpy(cons[i].Rvalue, conditions[i].lhsValue.data, attrLength);
-		}
-		CloseScan(FileScan);
-	}
-	RM_CloseFile(hSyscolumns);
-	free(hSyscolumns);
-	free(syscolumnsRec);
-	free(checkerCons);
+	//对传入conditions进行语义分析，得到扫描条件
+	GetScanCons(relName, nConditions, conditions, cons);
 
 	//对数据表进行扫描
 	rc = OpenScan(FileScan, hTable, nConditions, cons);
@@ -742,20 +754,22 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 RC Update(char* relName, char* attrName, Value* Value, int nConditions, Condition* conditions) {
 	RC rc;
 	RM_FileHandle* hSyscolumns, * hTable;
-	IX_IndexHandle* hIndex;
+	//IX_IndexHandle* hIndex;
 	RM_FileScan* FileScan;
 	RID* rid;
+	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
 
 	hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
-	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
-	rid = (RID*)malloc(sizeof(RID));
-
-	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
-	FileScan->bOpen = false;
-
 	hSyscolumns->bOpen = false;
 	hTable->bOpen = false;
+	//hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
+	rid = (RID*)malloc(sizeof(RID));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan->bOpen = false;
+	
+	//对传入conditions进行语义分析，得到扫描条件
+	GetScanCons(relName, nConditions, conditions, cons);
 
 	//打开系统列文件和数据表文件
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
@@ -769,11 +783,8 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	syscolumnsRec->bValid = false;
 	tableRec->bValid = false;
 
-	//开始将传入的条件转换为扫描条件
-	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
+	//对要修改的属性进行语义检测
 	Con* checkerCons = (Con*)calloc(2, sizeof(Con));
-
-	//为了检测Delete的条件是否合法，构造对SYSCOLUMNS的扫描条件
 
 	//扫描条件1：表名为relName
 	checkerCons[0].bLhsIsAttr = 1;
@@ -792,66 +803,8 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	checkerCons[1].compOp = CompOp::EQual;
 	checkerCons[1].bRhsIsAttr = 0;
 	checkerCons[1].Rvalue = (void*)calloc(1, 21);
-	for (int i = 0; i < nConditions; i++) {
-		//左属性，右值
-		int valueType = 0;
-		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName, 21);
-			valueType = conditions[i].rhsValue.type;
-		}
-		//左值，右属性
-		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName, 21);
-			valueType = conditions[i].lhsValue.type;
-		}
-		//左右均为属性
-		else if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 1) {
-			//咋写？有机会再加吧
-			return SQL_SYNTAX;
-		}
-		//其他情况，报错
-		else {
-			return SQL_SYNTAX;
-		}
-
-		//开始对SYSCOLUMNS进行扫描
-
-		//检测条件中的值类型是否与SYSCOLUMNS中所记的一致
-		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
-		if (rc != SUCCESS)return rc;
-		rc = GetNextRec(FileScan, syscolumnsRec);
-		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
-		int attrType = 0, attrLength = 0, attrOffset = 0;
-		memcpy(&attrType, syscolumnsRec->pData + 42, sizeof(int));		//提取属性类型
-		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
-			return SQL_SYNTAX;
-		}
-		memcpy(&attrLength, syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));			//提取属性长度
-		memcpy(&attrOffset, syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));		//提取属性偏移量
-
-
-		//条件语义检测通过，构造扫描条件
-		cons[i].bLhsIsAttr = 1;
-		cons[i].bRhsIsAttr = 0;
-		cons[i].LattrLength = attrLength;
-		cons[i].LattrOffset = attrOffset;
-		cons[i].compOp = conditions[i].op;
-
-		if (conditions[i].bLhsIsAttr == 1) {
-			cons[i].attrType = conditions[i].rhsValue.type;
-			cons[i].Rvalue = (void*)calloc(1, attrLength);
-			memcpy(cons[i].Rvalue, conditions[i].rhsValue.data, attrLength);
-		}
-		else {
-			cons[i].attrType = conditions[i].lhsValue.type;
-			cons[i].Rvalue = (void*)calloc(1, attrLength);
-			memcpy(cons[i].Rvalue, conditions[i].lhsValue.data, attrLength);
-		}
-		CloseScan(FileScan);
-	}
-
-	//对要修改的属性进行语义检测
-	memcpy(checkerCons[1].Rvalue, &attrName, 21);
+	strcpy((char*)checkerCons[1].Rvalue, attrName);
+	//memcpy(checkerCons[1].Rvalue, &attrName, 21);
 	rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
 	if (rc != SUCCESS)return rc;
 	rc = GetNextRec(FileScan, syscolumnsRec);					//要被修改的属性不存在，报错
@@ -861,7 +814,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	int attrLength = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));					//提取要被修改的属性长度
 	if (attrType == AttrType::chars && strlen((char*)(Value->data)) > attrLength)		//字符串过长则报错
 		return SQL_SYNTAX;
-	int attrOffset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int)*2);				//提取要被修改的属性偏移量
+	int attrOffset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);				//提取要被修改的属性偏移量
 	CloseScan(FileScan);
 
 	//语义检测通过，垃圾回收
@@ -874,8 +827,9 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	rc = OpenScan(FileScan, hTable, nConditions, cons);
 	if (rc != SUCCESS)return rc;
 	while (GetNextRec(FileScan, tableRec) == SUCCESS) {
-		//DeleteRec(hTable, &tableRec->rid);				//删除记录
 		//Code Here...
+		memcpy(tableRec->pData + attrOffset, Value->data, attrLength);		//修改记录
+		UpdateRec(hTable, tableRec);										//更新记录
 	}
 
 	CloseScan(FileScan);
