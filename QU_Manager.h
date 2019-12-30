@@ -24,6 +24,7 @@ typedef struct
 RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int nOutputAttrs, Attr* attrs);
 
 RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs);
+RC Init_Result(SelResult* res, SelResult* father);
 
 void Destory_Result(SelResult* res);
 

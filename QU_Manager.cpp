@@ -62,6 +62,31 @@ RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs)
 	}
 }
 
+//用于构建超过100条记录后的下一个SelResult
+//未测试
+RC Init_Result(SelResult* res, SelResult* father)
+{
+
+	father->next_res = res;
+	res->col_num = father->col_num;
+
+	//按照father填充child
+
+	for (int i = 0; i < res->col_num; i++)
+	{
+
+		strcpy(res->fields[i], father->fields[i]);
+		res->length[i] = father->length[i];
+		res->offset[i] = father->offset[i];
+		res->row_num = 0;
+		res->type[i] = father->type[i];
+
+	}
+
+	return SUCCESS;
+
+}
+
 void Destory_Result(SelResult* res)
 {
 	for (int i = 0; i < res->row_num; i++)
