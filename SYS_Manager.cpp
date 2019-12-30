@@ -479,6 +479,10 @@ bool ColCmp(SysColumn& col1, SysColumn& col2) {
 	return col1.attroffset < col2.attroffset;
 }
 
+//最后测试时间：2019/12/30 16:25
+//最后测试状态：符合预期
+//最后测试人：Macyrate
+//用于扫描条件语义分析，将Condition*转为Con*
 RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCons) {
 	RC rc;
 	RM_FileHandle* hSyscolumns;
@@ -711,7 +715,9 @@ RC Insert(char* relName, int nValues, Value* values) {
 	return SUCCESS;
 }
 
-//未完成，施工中
+//最后测试时间：2019/12/30 16:25
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 //该函数用来删除relName表中所有满足指定条件的元组以及该元组对应的索引项。
 //如果没有指定条件，则此方法删除relName关系中所有元组。
 //如果包含多个条件，则这些条件之间为与关系。
@@ -747,7 +753,9 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	return SUCCESS;
 }
 
-//未完成
+//最后测试时间：2019/12/30 16:25
+//最后测试状态：符合预期
+//最后测试人：Macyrate
 //该函数用于更新relName表中所有满足指定条件的元组，在每一个更新的元组中将属性attrName的值设置为一个新的值。
 //如果没有指定条件，则此方法更新relName中所有元组。
 //如果要更新一个被索引的属性，应当先删除每个被更新元组对应的索引条目，然后插入一个新的索引条目。
