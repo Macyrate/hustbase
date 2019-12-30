@@ -11,6 +11,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr* selAttrs, int n
 }
 
 //用于构建一个和对应表名与sel子句对应的空的SelResult*
+//未测试
 RC Init_Result(SelResult* res, char* relName, int nSelAttrs, RelAttr* selAttrs)
 {
 
