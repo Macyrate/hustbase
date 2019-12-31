@@ -61,7 +61,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		attrs[*nOutputAttrs].size = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
 		attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
 
-		*nOutputAttrs++;
+		(*nOutputAttrs)++;
 	}
 
 	//收尾
@@ -73,7 +73,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 	if (rc != SUCCESS)return rc;
 	free(hSyscolumns);
 
-	free(syscolumnsRec);
+	//free(syscolumnsRec);
 	free(checkerCons);
 
 	return SUCCESS;
@@ -275,6 +275,14 @@ RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
 
 	AddResult(outRes, nData, data);
 
+	//收拾垃圾
+
+	for (int i = 0; i < nData; i++)
+	{
+		free(data[i]);
+	}
+	free(data);
+
 	return SUCCESS;
 
 }
@@ -295,7 +303,8 @@ void Destory_Result(SelResult* res)
 	}
 }
 
-//未完成
+//完成查询
+//未测试
 RC Query(char* sql, SelResult* res)
 {
 
@@ -317,7 +326,8 @@ RC Query(char* sql, SelResult* res)
 
 		//是合规的语法并且是select语句
 
-		//TODO
+		rc = Select(sql_str->sstr.sel.nSelAttrs, sql_str->sstr.sel.selAttrs, sql_str->sstr.sel.nRelations, sql_str->sstr.sel.relations, sql_str->sstr.sel.nConditions, sql_str->sstr.sel.conditions, res);
+		return rc;
 
 	}
 	else
@@ -353,7 +363,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		//初始化当前表的扫描结果集合
 
 		int nAttrs = 0;
-		Attr* currentAttrs = (Attr*)malloc(sizeof(Attr));
+		Attr* currentAttrs = (Attr*)malloc(20 * sizeof(Attr));
 		rc = GetAttrsByRelName(currentRelName, nSelAttrs, selAttrs, &nAttrs, currentAttrs);
 
 		if (rc == SUCCESS)
@@ -419,6 +429,13 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 						AddResult(&currentResult, nData, data);
 
 						//至此，扫描拼接投影完成
+						//收拾垃圾
+
+						for (int i = 0; i < nData; i++)
+						{
+							free(data[i]);
+						}
+						free(data);
 
 					}
 					else

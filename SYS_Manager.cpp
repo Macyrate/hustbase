@@ -14,41 +14,55 @@ using namespace std;
 
 void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界面上显示执行结果。此函数需修改
 	std::string s_sql = sql;
-	//if(s_sql.find("select") == 0){
-	//	SelResult res;
-	//	Init_Result(&res);
-	//	//rc = Query(sql,&res);
-	//	//将查询结果处理一下，整理成下面这种形式
-	//	//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
-	//	int col_num = 5;
-	//	int row_num = 3;
-	//	char ** fields = new char *[5];
-	//	for(int i = 0;i<col_num;i++){
-	//		fields[i] = new char[20];
-	//		memset(fields[i],0,20);
-	//		fields[i][0] = 'f';
-	//		fields[i][1] = i+'0';
-	//	}
-	//	char *** rows = new char**[row_num];
-	//	for(int i = 0;i<row_num;i++){
-	//		rows[i] = new char*[col_num];
-	//		for(int j = 0;j<col_num;j++){
-	//			rows[i][j] = new char[20];
-	//			memset(rows[i][j],0,20);
-	//			rows[i][j][0] = 'r';
-	//			rows[i][j][1] = i + '0';
-	//			rows[i][j][2] = '+';
-	//			rows[i][j][3] = j + '0';
-	//		}
-	//	}
-	//	editArea->ShowSelResult(col_num,row_num,fields,rows);
-	//	for(int i = 0;i<5;i++){
-	//		delete[] fields[i];
-	//	}
-	//	delete[] fields;
-	//	Destory_Result(&res);
-	//	return;
-	//}
+	RC rc;
+	if (s_sql.find("select") == 0)
+	{
+		SelResult res;
+		rc = Query(sql, &res);
+		//将查询结果处理一下，整理成下面这种形式
+		//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
+		int col_num = res.col_num;
+		int row_num = 0;
+
+		char** fields = (char**)malloc(col_num * sizeof(char*));
+
+		for (int i = 0; i < col_num; i++)
+		{
+
+			fields[i] = (char*)malloc(21 * sizeof(char));
+			strcpy(fields[i], res.fields[i]);
+
+		}
+
+		char*** rows = (char***)malloc(MAX_SINGLE_REL_RES_NUM * sizeof(char**));
+
+		SelResult* currentRes = &res;
+		while (currentRes != NULL)
+		{
+
+			for (int i = 0; i < currentRes->row_num; i++)
+			{
+
+				rows[row_num] = (char**)malloc(col_num * sizeof(char*));
+
+				for (int j = 0; j < col_num; j++)
+				{
+
+					rows[row_num][j] = (char*)malloc(currentRes->length[j] * sizeof(char));
+					memcpy(rows[row_num][j], *(currentRes->res[i]) + currentRes->offset[j], currentRes->length[j] * sizeof(char));
+
+				}
+
+				row_num++;
+
+			}
+
+			currentRes = currentRes->next_res;
+
+		}
+		editArea->ShowSelResult(col_num, row_num, fields, rows);
+		return;
+	}
 	/*--------------------以下代码为测试RM_Manager，无实际意义--------------------*/
 	//LogMessage("这是一条消息级Log");
 	//LogMessage("这是一条错误级Log", LOG_ERROR);
@@ -97,7 +111,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	//RM_CloseFile(handle);
 
 	/*--------------------------------------------------------------------*/
-	RC rc = execute(sql);
+	rc = execute(sql);
 	int row_num = 0;
 	char** messages;
 	switch (rc) {
@@ -137,9 +151,8 @@ RC execute(char* sql) {
 		switch (sql_str->flag)
 		{
 			//case 1:
-			////判断SQL语句为select语句
-
-			//break;
+			//	//判断SQL语句为select语句
+			//	break;
 
 		case 2:
 			//判断SQL语句为insert语句
@@ -561,13 +574,13 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		if (rc != SUCCESS)return rc;
 		rc = GetNextRec(FileScan, syscolumnsRec);
 		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
-		int attrType = 0, attrLength = 0, attrOffset = 0;	
+		int attrType = 0, attrLength = 0, attrOffset = 0;
 		attrType = *(int*)(syscolumnsRec->pData + 42);			//提取属性类型
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
 			return SQL_SYNTAX;
 		}
 		attrLength = *(int*)syscolumnsRec->pData + 42 + sizeof(int);		//提取属性长度
-		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int)*2;		//提取属性偏移量
+		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int) * 2;		//提取属性偏移量
 
 
 		//语义检测通过，构造扫描条件
@@ -658,7 +671,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS) return rc;
 	int recordSize = 0;
 	int i = 0;
-	while(GetNextRec(FileScan,syscolumnsRec)==SUCCESS && i<nValues){
+	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS && i < nValues) {
 		if (strcmp(relName, syscolumnsRec->pData) != 0)
 			continue;		//跳过非要扫描的表
 		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
