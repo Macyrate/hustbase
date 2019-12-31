@@ -62,10 +62,11 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
 
 		(*nOutputAttrs)++;
+
+		rc = CloseScan(FileScan);
 	}
 
 	//收尾
-	rc = CloseScan(FileScan);
 	if (rc != SUCCESS)return rc;
 	free(FileScan);
 
