@@ -612,7 +612,7 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
 		if (rc != SUCCESS)return rc;
 		rc = GetNextRec(FileScan, syscolumnsRec);
-		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
+		if (rc != SUCCESS)return TABLE_COLUMN_ERROR;		//找不到名称匹配的属性则返回SQL_SYNTAX
 		int attrType = 0, attrLength = 0, attrOffset = 0;
 		attrType = *(int*)(syscolumnsRec->pData + 42);			//提取属性类型
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
@@ -651,6 +651,10 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 //该函数用来在relName表中插入具有指定属性值的新元组，nValues为属性值个数，values为对应的属性值数组。
 //函数根据给定的属性值构建元组，调用记录管理模块的函数插入该元组，然后在该表的每个索引中为该元组创建合适的索引项
 RC Insert(char* relName, int nValues, Value* values) {
+	CFileFind fileFind;
+	if (!fileFind.FindFile(relName))
+		return	TABLE_NOT_EXIST;					//检查表是否存在
+
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns, * hTable;
 	IX_IndexHandle* hIndex;
@@ -778,6 +782,10 @@ RC Insert(char* relName, int nValues, Value* values) {
 //如果没有指定条件，则此方法删除relName关系中所有元组。
 //如果包含多个条件，则这些条件之间为与关系。
 RC Delete(char* relName, int nConditions, Condition* conditions) {
+	CFileFind fileFind;
+	if (!fileFind.FindFile(relName))
+		return	TABLE_NOT_EXIST;					//检查表是否存在
+
 	RC rc;
 	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
 	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
@@ -816,6 +824,10 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 //如果没有指定条件，则此方法更新relName中所有元组。
 //如果要更新一个被索引的属性，应当先删除每个被更新元组对应的索引条目，然后插入一个新的索引条目。
 RC Update(char* relName, char* attrName, Value* Value, int nConditions, Condition* conditions) {
+	CFileFind fileFind;
+	if (!fileFind.FindFile(relName))
+		return	TABLE_NOT_EXIST;					//检查表是否存在
+	
 	RC rc;
 	RM_FileHandle* hSyscolumns, * hTable;
 	//IX_IndexHandle* hIndex;
