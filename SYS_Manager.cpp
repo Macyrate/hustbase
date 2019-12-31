@@ -316,6 +316,12 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 	//int			attrLength;			// 属性长度
 	//};
 
+	if (strlen(relName) >= 20) return TABLE_NAME_ILLEGAL;
+
+	CFileFind fileFind;
+	if (fileFind.FindFile(relName))
+		return	TABLE_EXIST;					//检查表是否存在
+
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns;
 	RID* rid;
@@ -387,6 +393,10 @@ RC DropTable(char* relName) {
 	RC rc;
 	RM_FileHandle* hSystables, * hSyscolumns;
 	RM_FileScan* FileScan;
+
+	CFileFind fileFind;
+	if (!fileFind.FindFile(relName))
+		return	TABLE_NOT_EXIST;					//检查表是否存在
 
 	//打开要操作的表文件，获取句柄
 	hSystables = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
