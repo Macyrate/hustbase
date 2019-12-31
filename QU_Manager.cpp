@@ -108,21 +108,21 @@ RC AddResult(SelResult* res, int nData, char** data)
 
 		//若已经到达100条记录，则开辟新的SelResult
 
-		if (current->col_num == 100)
+		if (current->row_num == 100)
 		{
 			SelResult* nextResult = (SelResult*)malloc(sizeof(SelResult));
 			Init_Result(nextResult, current);
 			current = nextResult;
 		}
 
-		//为current->res[current->col_num+1]开辟空间
+		//为current->res[current->row_num]开辟空间
 
-		current->res[current->col_num + 1] = (char**)malloc(sizeof(char*));
-		*current->res[current->col_num + 1] = (char*)malloc(totalLength * sizeof(char));
+		current->res[current->row_num] = (char**)malloc(sizeof(char*));
+		*current->res[current->row_num] = (char*)malloc(totalLength * sizeof(char));
 
 		//添加记录
 
-		memcpy(*(current->res[current->col_num++]), data[i], totalLength * sizeof(char));
+		memcpy(*(current->res[current->row_num++]), data[i], totalLength * sizeof(char));
 
 	}
 
@@ -159,9 +159,8 @@ RC Init_Result(SelResult* res, char* relName, int nAttrs, Attr* attrs)
 
 	}
 
-	//释放资源，返回成功
+	//返回成功
 
-	free(attrs);
 	return SUCCESS;
 
 }
@@ -250,11 +249,11 @@ RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
 				for (int j = 0; j < currentB->row_num; j++)
 				{
 
-					data[nData + 1] = (char*)malloc(totalLength * sizeof(char));
+					data[nData] = (char*)malloc(totalLength * sizeof(char));
 
 					//将前半部填充为a中的数据
 
-					memcpy(data[nData + 1], *(currentA->res[i]), totalLengthA * sizeof(char));
+					memcpy(data[nData], *(currentA->res[i]), totalLengthA * sizeof(char));
 
 					//将后半部填充为b中的数据
 
@@ -359,7 +358,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		//当前表名
 
 		char* currentRelName = relations[i];
-		SelResult currentResult = singleResults[i];
+		SelResult* currentResult = singleResults + i;;
 
 		//初始化当前表的扫描结果集合
 
@@ -370,7 +369,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		if (rc == SUCCESS)
 		{
 
-			Init_Result(&currentResult, currentRelName, nAttrs, currentAttrs);
+			Init_Result(currentResult, currentRelName, nAttrs, currentAttrs);
 
 			//对于每一张表（关系）构造扫描条件
 
@@ -406,20 +405,20 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 						char** data = (char**)malloc(MAX_SINGLE_REL_RES_NUM * sizeof(char*));
 						int nData = 0;
-						int totalLength = currentResult.offset[currentResult.col_num - 1] + currentResult.length[currentResult.col_num - 1];
+						int totalLength = currentResult->offset[currentResult->col_num - 1] + currentResult->length[currentResult->col_num - 1];
 						RM_Record* currentRec = (RM_Record*)malloc(sizeof(RM_Record));
 						while (GetNextRec(scanner, currentRec) == SUCCESS)
 						{
 
 							//对于每条满足条件的记录，在拼接时完成投影
 
-							for (int j = 0; j < currentResult.col_num; j++)
+							for (int j = 0; j < currentResult->col_num; j++)
 							{
 
 								//对于每一个属于该表的列
 
-								data[nData + 1] = (char*)malloc(totalLength * sizeof(char));
-								memcpy(data[nData++] + currentResult.offset[j], currentRec->pData + currentAttrs[j].offset, currentResult.length[j] * sizeof(char));
+								data[nData] = (char*)malloc(totalLength * sizeof(char));
+								memcpy(data[nData++] + currentResult->offset[j], currentRec->pData + currentAttrs[j].offset, currentResult->length[j] * sizeof(char));
 
 							}
 
@@ -427,7 +426,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 						//朝当前表的扫描记录集合内添加
 
-						AddResult(&currentResult, nData, data);
+						AddResult(currentResult, nData, data);
 
 						//至此，扫描拼接投影完成
 						//收拾垃圾
@@ -438,12 +437,19 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 						}
 						free(data);
 
+						CloseScan(scanner);
+						RM_CloseFile(relHandle);
+						free(scanner);
+						free(relHandle);
+						free(cons);
+
 					}
 					else
 					{
 
 						//释放资源并返回错误信息
 
+						RM_CloseFile(relHandle);
 						free(scanner);
 						free(relHandle);
 						free(cons);
@@ -497,6 +503,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 	SelResult* tmpResult = (SelResult*)malloc(sizeof(SelResult));
 	memcpy(tmpResult, singleResults, sizeof(SelResult));
+	memcpy(res, singleResults, sizeof(SelResult));
 	for (int i = 1; i < nRelations; i++)
 	{
 		Join(tmpResult, singleResults + i, res);
