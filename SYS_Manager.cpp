@@ -561,13 +561,13 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		if (rc != SUCCESS)return rc;
 		rc = GetNextRec(FileScan, syscolumnsRec);
 		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
-		int attrType = 0, attrLength = 0, attrOffset = 0;	
+		int attrType = 0, attrLength = 0, attrOffset = 0;
 		attrType = *(int*)(syscolumnsRec->pData + 42);			//提取属性类型
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
 			return SQL_SYNTAX;
 		}
 		attrLength = *(int*)syscolumnsRec->pData + 42 + sizeof(int);		//提取属性长度
-		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int)*2;		//提取属性偏移量
+		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int) * 2;		//提取属性偏移量
 
 
 		//语义检测通过，构造扫描条件
@@ -658,7 +658,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 	if (rc != SUCCESS) return rc;
 	int recordSize = 0;
 	int i = 0;
-	while(GetNextRec(FileScan,syscolumnsRec)==SUCCESS && i<nValues){
+	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS && i < nValues) {
 		if (strcmp(relName, syscolumnsRec->pData) != 0)
 			continue;		//跳过非要扫描的表
 		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
