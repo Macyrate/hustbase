@@ -12,6 +12,7 @@
 */
 #include<stdlib.h>
 #include<string.h>
+#include "RC.h"
 
 //属性结构体
 typedef struct  {
