@@ -579,8 +579,8 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
 			return SQL_SYNTAX;
 		}
-		attrLength = *(int*)syscolumnsRec->pData + 42 + sizeof(int);		//提取属性长度
-		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int) * 2;		//提取属性偏移量
+		attrLength = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
+		attrOffset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);		//提取属性偏移量
 
 
 		//语义检测通过，构造扫描条件
@@ -674,13 +674,13 @@ RC Insert(char* relName, int nValues, Value* values) {
 	while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS && i < nValues) {
 		if (strcmp(relName, syscolumnsRec->pData) != 0)
 			continue;		//跳过非要扫描的表
-		memcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData, 21);														//提取表名
-		memcpy((rgstSyscolumns + i)->attrname, syscolumnsRec->pData + 21, 21);													//提取属性名
-		memcpy(&((rgstSyscolumns + i)->attrtype), syscolumnsRec->pData + 42, sizeof(int));										//提取属性类型
-		memcpy(&((rgstSyscolumns + i)->attrlength), syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));						//提取属性类型
-		memcpy(&((rgstSyscolumns + i)->attroffset), syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));					//提取属性偏移量
-		memcpy(&((rgstSyscolumns + i)->ix_flag), syscolumnsRec->pData + 42 + sizeof(int) * 3, sizeof(char));					//提取索引标志
-		memcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char), 21);				//提取索引名称
+		strcpy((rgstSyscolumns + i)->tablename, syscolumnsRec->pData);													//提取表名
+		strcpy((rgstSyscolumns + i)->attrname, syscolumnsRec->pData + 21);												//提取属性名
+		(rgstSyscolumns + i)->attrtype = *(int*)(syscolumnsRec->pData + 42);											//提取属性类型
+		(rgstSyscolumns + i)->attrlength = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));							//提取属性类型
+		(rgstSyscolumns + i)->attroffset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);						//提取属性偏移量
+		(rgstSyscolumns + i)->ix_flag = *(syscolumnsRec->pData + 42 + sizeof(int) * 3);									//提取索引标志
+		strcpy((rgstSyscolumns + i)->indexname, syscolumnsRec->pData + 42 + sizeof(int) * 3 + sizeof(char));			//提取索引名称
 
 		recordSize += (rgstSyscolumns + i)->attrlength;			//计算要构造的元组总长度
 		i++;
@@ -819,9 +819,9 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	checkerCons[0].attrType = chars;
 	checkerCons[0].bRhsIsAttr = 0;
 	checkerCons[0].Rvalue = (void*)calloc(1, 21);
-	memcpy(checkerCons[0].Rvalue, relName, 21);
+	strcpy((char*)checkerCons[0].Rvalue, relName);
 
-	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
+	//扫描条件2：属性名为attrName
 	checkerCons[1].bLhsIsAttr = 1;
 	checkerCons[1].LattrLength = 21;
 	checkerCons[1].LattrOffset = 21;
@@ -829,7 +829,6 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	checkerCons[1].bRhsIsAttr = 0;
 	checkerCons[1].Rvalue = (void*)calloc(1, 21);
 	strcpy((char*)checkerCons[1].Rvalue, attrName);
-	//memcpy(checkerCons[1].Rvalue, &attrName, 21);
 	rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
 	if (rc != SUCCESS)return rc;
 	rc = GetNextRec(FileScan, syscolumnsRec);					//要被修改的属性不存在，报错
