@@ -797,8 +797,10 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	if (rc != SUCCESS)return rc;
 
 	//对传入conditions进行语义分析，得到扫描条件
-	GetScanCons(relName, nConditions, conditions, cons);
-
+	rc = GetScanCons(relName, nConditions, conditions, cons);
+	if (rc != SUCCESS)
+		return rc;
+	
 	//对数据表进行扫描
 	rc = OpenScan(FileScan, hTable, nConditions, cons);
 	if (rc != SUCCESS)return rc;
@@ -845,7 +847,9 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	FileScan->bOpen = false;
 
 	//对传入conditions进行语义分析，得到扫描条件
-	GetScanCons(relName, nConditions, conditions, cons);
+	rc = GetScanCons(relName, nConditions, conditions, cons);
+	if (rc != SUCCESS)
+		return rc;
 
 	//打开系统列文件和数据表文件
 	rc = RM_OpenFile("SYSCOLUMNS", hSyscolumns);
