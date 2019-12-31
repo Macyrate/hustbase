@@ -261,7 +261,8 @@ RC Query(char* sql, SelResult* res)
 	}
 }
 
-//未完成
+//支持多表的查询
+//未测试
 RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, int nConditions, Condition* conditions, SelResult* res)
 {
 
@@ -407,7 +408,13 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 	//进行笛卡尔积的计算
 
-	//TODO
+	SelResult* tmpResult = (SelResult*)malloc(sizeof(SelResult));
+	memcpy(tmpResult, singleResults, sizeof(SelResult));
+	for (int i = 1; i < nRelations; i++)
+	{
+		Join(tmpResult, singleResults + i, res);
+		memcpy(tmpResult, res, sizeof(SelResult));
+	}
 
 	return SUCCESS;
 }
