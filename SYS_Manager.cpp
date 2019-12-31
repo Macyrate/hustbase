@@ -887,7 +887,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
 	if (rc != SUCCESS)return rc;
 	rc = GetNextRec(FileScan, syscolumnsRec);					//要被修改的属性不存在，报错
-	if (rc != SUCCESS)return rc;
+	if (rc != SUCCESS)return TABLE_COLUMN_ERROR;
 	int attrType = *(int*)(syscolumnsRec->pData + 42);			//提取要被修改的属性类型
 	if (attrType != Value->type) return SQL_SYNTAX;				//要被修改的属性类型不符合则报错
 	int attrLength = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));					//提取要被修改的属性长度
