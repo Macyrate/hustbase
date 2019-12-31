@@ -623,21 +623,25 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 
 
 		//语义检测通过，构造扫描条件
-		retCons[i].bLhsIsAttr = 1;
-		retCons[i].bRhsIsAttr = 0;
-		retCons[i].LattrLength = attrLength;
-		retCons[i].LattrOffset = attrOffset;
-		retCons[i].compOp = conditions[i].op;
-
 		if (conditions[i].bLhsIsAttr == 1) {
+			retCons[i].bLhsIsAttr = 1;
+			retCons[i].bRhsIsAttr = 0;
+			retCons[i].LattrLength = attrLength;
+			retCons[i].LattrOffset = attrOffset;
+			retCons[i].compOp = conditions[i].op;
 			retCons[i].attrType = conditions[i].rhsValue.type;
 			retCons[i].Rvalue = (void*)calloc(1, attrLength);
 			memcpy(retCons[i].Rvalue, conditions[i].rhsValue.data, attrLength);
 		}
 		else {
+			retCons[i].bLhsIsAttr = 0;
+			retCons[i].bRhsIsAttr = 1;
+			retCons[i].RattrLength = attrLength;
+			retCons[i].RattrOffset = attrOffset;
+			retCons[i].compOp = conditions[i].op;
 			retCons[i].attrType = conditions[i].lhsValue.type;
-			retCons[i].Rvalue = (void*)calloc(1, attrLength);
-			memcpy(retCons[i].Rvalue, conditions[i].lhsValue.data, attrLength);
+			retCons[i].Lvalue = (void*)calloc(1, attrLength);
+			memcpy(retCons[i].Lvalue, conditions[i].lhsValue.data, attrLength);
 		}
 		CloseScan(FileScan);
 	}
