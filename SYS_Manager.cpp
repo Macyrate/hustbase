@@ -523,7 +523,7 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 	checkerCons[0].attrType = chars;
 	checkerCons[0].bRhsIsAttr = 0;
 	checkerCons[0].Rvalue = (void*)calloc(1, 21);
-	memcpy(checkerCons[0].Rvalue, relName, 21);
+	strcpy((char*)checkerCons[0].Rvalue, relName);
 
 	//扫描条件2：属性名为conditions[i].(lhsAttr|rhsAttr).attrName
 	checkerCons[1].bLhsIsAttr = 1;
@@ -536,12 +536,12 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		//左属性，右值
 		int valueType = 0;
 		if ((conditions + i)->bLhsIsAttr == 1 && (conditions + i)->bRhsIsAttr == 0) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName, 21);
+			strcpy((char*)checkerCons[1].Rvalue, conditions[i].lhsAttr.attrName);
 			valueType = conditions[i].rhsValue.type;
 		}
 		//左值，右属性
 		else if ((conditions + i)->bLhsIsAttr == 0 && (conditions + i)->bRhsIsAttr == 1) {
-			memcpy(checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName, 21);
+			strcpy((char*)checkerCons[1].Rvalue, conditions[i].rhsAttr.attrName);
 			valueType = conditions[i].lhsValue.type;
 		}
 		//左右均为属性
@@ -561,13 +561,13 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		if (rc != SUCCESS)return rc;
 		rc = GetNextRec(FileScan, syscolumnsRec);
 		if (rc != SUCCESS)return rc;		//找不到名称匹配的属性则返回SQL_SYNTAX
-		int attrType = 0, attrLength = 0, attrOffset = 0;
-		memcpy(&attrType, syscolumnsRec->pData + 42, sizeof(int));		//提取属性类型
+		int attrType = 0, attrLength = 0, attrOffset = 0;	
+		attrType = *(int*)(syscolumnsRec->pData + 42);			//提取属性类型
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
 			return SQL_SYNTAX;
 		}
-		memcpy(&attrLength, syscolumnsRec->pData + 42 + sizeof(int), sizeof(int));			//提取属性长度
-		memcpy(&attrOffset, syscolumnsRec->pData + 42 + sizeof(int) * 2, sizeof(int));		//提取属性偏移量
+		attrLength = *(int*)syscolumnsRec->pData + 42 + sizeof(int);		//提取属性长度
+		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int)*2;		//提取属性偏移量
 
 
 		//语义检测通过，构造扫描条件
