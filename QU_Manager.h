@@ -28,6 +28,8 @@ RC AddResult(SelResult* res, int nData, char** data);
 RC Init_Result(SelResult* res, char* relName, int nAttrs, Attr* Attrs);
 RC Init_Result(SelResult* res, SelResult* father);
 
+RC Join(SelResult* resA, SelResult* resB);
+
 void Destory_Result(SelResult* res);
 
 RC Query(char* sql, SelResult* res);

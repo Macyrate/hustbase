@@ -45,8 +45,14 @@ RC AddResult(SelResult* res, int nData, char** data)
 			current = nextResult;
 		}
 
+		//为current->res[current->col_num+1]开辟空间
+
+		current->res[current->col_num + 1] = (char**)malloc(sizeof(char*));
+		*current->res[current->col_num + 1] = (char*)malloc(totalLength * sizeof(char));
+
 		//添加记录
-		memcpy(current->res[current->col_num++], data[i], totalLength * sizeof(char));
+
+		memcpy(*(current->res[current->col_num++]), data[i], totalLength * sizeof(char));
 
 	}
 
@@ -110,6 +116,95 @@ RC Init_Result(SelResult* res, SelResult* father)
 		res->type[i] = father->type[i];
 
 	}
+
+	return SUCCESS;
+
+}
+
+//计算两个表的笛卡尔积
+//未测试
+RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
+{
+
+	//拼接两个表的列，计算新的每个列的偏移量
+
+	outRes->col_num = resA->col_num + resB->col_num;
+	outRes->row_num = 0;
+
+	for (int i = 0; i < resA->col_num; i++)
+	{
+
+		//向前a列填充resA的偏移量信息和列长度
+
+		outRes->length[i] = resA->length[i];
+		outRes->offset[i] = resA->offset[i];
+
+	}
+
+	int currentOffset = resA->offset[resA->col_num - 1] + resA->length[resA->col_num - 1];
+
+	for (int i = 0; i < resB->col_num; i++)
+	{
+
+		//向后b列填充resB的长度信息，并计算应有的偏移量
+
+		outRes->length[i + resA->col_num] = resB->length[i];
+		outRes->offset[i + resA->col_num] = resB->offset[i] + currentOffset;
+
+	}
+
+	//至此，新的outRes结构构建完成
+	//填充数据
+	//声明用于储存临时行的字段
+
+	char** data = (char**)malloc(MAX_SINGLE_REL_RES_NUM * sizeof(char*));
+	int nData = 0;
+	int totalLengthA = resA->length[resA->col_num - 1] + resA->offset[resA->col_num - 1];
+	int totalLengthB = resB->length[resB->col_num - 1] + resB->offset[resB->col_num - 1];
+	int totalLength = outRes->length[outRes->col_num - 1] + outRes->offset[outRes->col_num - 1];
+	SelResult* currentA = resA;
+	while (currentA != NULL)
+	{
+
+		//外层循环：顺序拿出resA整条链中所有有数据的链结
+
+		for (int i = 0; i < currentA->row_num; i++)
+		{
+
+			SelResult* currentB = resB;
+			while (currentB != NULL)
+			{
+
+				//内层循环：顺序拿出resB整条链中所有有数据的链结
+
+				for (int j = 0; j < currentB->row_num; j++)
+				{
+
+					data[nData + 1] = (char*)malloc(totalLength * sizeof(char));
+
+					//将前半部填充为a中的数据
+
+					memcpy(data[nData + 1], *(currentA->res[i]), totalLengthA * sizeof(char));
+
+					//将后半部填充为b中的数据
+
+					memcpy(data[nData++], *(currentB->res[j]), totalLengthB * sizeof(char));
+
+				}
+
+				currentB = currentB->next_res;
+
+			}
+
+		}
+
+		currentA = currentA->next_res;
+
+	}
+
+	//将数据扔进outRes中
+
+	AddResult(outRes, nData, data);
 
 	return SUCCESS;
 
@@ -230,6 +325,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 						char** data = (char**)malloc(MAX_SINGLE_REL_RES_NUM * sizeof(char*));
 						int nData = 0;
+						int totalLength = currentResult.offset[currentResult.col_num - 1] + currentResult.length[currentResult.col_num - 1];
 						RM_Record* currentRec = (RM_Record*)malloc(sizeof(RM_Record));
 						while (GetNextRec(scanner, currentRec) == SUCCESS)
 						{
@@ -241,6 +337,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 								//对于每一个属于该表的列
 
+								data[nData + 1] = (char*)malloc(totalLength * sizeof(char));
 								memcpy(data[nData++] + currentResult.offset[j], currentRec->pData + currentAttrs[j].offset, currentResult.length[j] * sizeof(char));
 
 							}
