@@ -67,7 +67,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		if (rc != SUCCESS)return rc;
 		while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
 			//提取属性信息
-			strcpy(attrs[*nOutputAttrs].attrName, selAttrs[i]->attrName);						//提取属性名
+			strcpy(attrs[*nOutputAttrs].attrName, syscolumnsRec->pData + 21);					//提取属性名
 			attrs[*nOutputAttrs].type = (AttrType) * (int*)(syscolumnsRec->pData + 42);			//提取属性类型
 			attrs[*nOutputAttrs].size = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
 			attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
