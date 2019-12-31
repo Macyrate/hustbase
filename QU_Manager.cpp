@@ -3,10 +3,35 @@
 #include "SYS_Manager.h"
 #include "RM_Manager.h"
 
+//从nInputSelAttrs个selAttrs中寻找是否有唯一的"*"
+//ret = 0则没有"*"
+//ret = 1有唯一的"*"
+//ret = -1 有"*"但还有其他奇怪的东西
+int FindOnlyStar(int nInputSelAttrs, RelAttr** selAttrs)
+{
+	
+	int ret = 0;
+
+	for (int i = nInputSelAttrs; i > 0; i--)
+	{
+		if (strcmp(selAttrs[i]->attrName, "*") != 0)
+			continue;
+		else if (ret == 0)
+			ret = 1;
+		else
+			ret = -1;
+	}
+	return ret;
+}
+
 //指定表名，将对应的属性名称从混杂的selAttrs中分离出来，并得到其Offset
 //TODO: 未测试
 RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int* nOutputAttrs, Attr* attrs)
 {
+
+	int onlystar = FindOnlyStar(nInputSelAttrs, selAttrs);
+	if (onlystar == -1)
+		return SQL_SYNTAX;
 
 	RC rc;
 	RM_FileHandle* hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
@@ -23,14 +48,11 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 	if (rc != SUCCESS)return rc;
 
 	int i = 0;
-	for (int i = 0; i < nInputSelAttrs; i++)
+
+	//如果选择的有且仅有"*"
+	if (onlystar == 1)
 	{
-		if (selAttrs[i]->relName != NULL && strcmp(selAttrs[i]->relName, relName) != 0)		//有表名且表名不符，跳过
-			continue;
-
-		//对表名符合的属性,在SYSCOLUMNS中扫描
-
-		//扫描条件1：表名为relName
+		//扫描条件：表名为relName
 		checkerCons[0].bLhsIsAttr = 1;
 		checkerCons[0].LattrLength = 21;
 		checkerCons[0].LattrOffset = 0;
@@ -40,42 +62,78 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		checkerCons[0].Rvalue = (void*)calloc(1, 21);
 		strcpy((char*)checkerCons[0].Rvalue, relName);
 
-		//扫描条件2：属性名为selAttrs[i]->attrName
-		checkerCons[1].bLhsIsAttr = 1;
-		checkerCons[1].LattrLength = 21;
-		checkerCons[1].LattrOffset = 21;
-		checkerCons[1].compOp = CompOp::EQual;
-		checkerCons[1].bRhsIsAttr = 0;
-		checkerCons[1].Rvalue = (void*)calloc(1, 21);
-		strcpy((char*)checkerCons[1].Rvalue, selAttrs[i]->attrName);
-
 		//扫描SYSCOLUMNS，获取属性对应记录
 		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
 		if (rc != SUCCESS)return rc;
-		rc = GetNextRec(FileScan, syscolumnsRec);
-		if (rc != SUCCESS)return rc;
+		while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
+			//提取属性信息
+			strcpy(attrs[*nOutputAttrs].attrName, selAttrs[i]->attrName);						//提取属性名
+			attrs[*nOutputAttrs].type = (AttrType) * (int*)(syscolumnsRec->pData + 42);			//提取属性类型
+			attrs[*nOutputAttrs].size = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
+			attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
 
-		//提取属性信息
-		strcpy(attrs[*nOutputAttrs].attrName, selAttrs[i]->attrName);						//提取属性名
-		attrs[*nOutputAttrs].type = (AttrType) * (int*)(syscolumnsRec->pData + 42);			//提取属性类型
-		attrs[*nOutputAttrs].size = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
-		attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
-
-		(*nOutputAttrs)++;
+			(*nOutputAttrs)++;
+		}
 
 		rc = CloseScan(FileScan);
 		if (rc != SUCCESS)return rc;
+
 	}
 
-	//收尾
-	free(FileScan);
+	//一般情况
+	else
+	{
+		for (int i = nInputSelAttrs; i > 0; i--)
+		{
+			if (selAttrs[i]->relName != NULL && strcmp(selAttrs[i]->relName, relName) != 0)			//有表名且表名不符，跳过
+				continue;
+			//对表名符合的属性,在SYSCOLUMNS中扫描
 
-	rc = RM_CloseFile(hSyscolumns);
-	if (rc != SUCCESS)return rc;
-	free(hSyscolumns);
+			//扫描条件1：表名为relName
+			checkerCons[0].bLhsIsAttr = 1;
+			checkerCons[0].LattrLength = 21;
+			checkerCons[0].LattrOffset = 0;
+			checkerCons[0].compOp = CompOp::EQual;
+			checkerCons[0].attrType = chars;
+			checkerCons[0].bRhsIsAttr = 0;
+			checkerCons[0].Rvalue = (void*)calloc(1, 21);
+			strcpy((char*)checkerCons[0].Rvalue, relName);
 
-	//free(syscolumnsRec);
-	free(checkerCons);
+			//扫描条件2：属性名为selAttrs[i]->attrName
+			checkerCons[1].bLhsIsAttr = 1;
+			checkerCons[1].LattrLength = 21;
+			checkerCons[1].LattrOffset = 21;
+			checkerCons[1].compOp = CompOp::EQual;
+			checkerCons[1].bRhsIsAttr = 0;
+			checkerCons[1].Rvalue = (void*)calloc(1, 21);
+			strcpy((char*)checkerCons[1].Rvalue, selAttrs[i]->attrName);
+
+			//扫描SYSCOLUMNS，获取属性对应记录
+			rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
+			if (rc != SUCCESS)return rc;
+			rc = GetNextRec(FileScan, syscolumnsRec);
+			if (rc != SUCCESS)return rc;
+
+			//提取属性信息
+			strcpy(attrs[*nOutputAttrs].attrName, selAttrs[i]->attrName);						//提取属性名
+			attrs[*nOutputAttrs].type = (AttrType) * (int*)(syscolumnsRec->pData + 42);			//提取属性类型
+			attrs[*nOutputAttrs].size = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
+			attrs[*nOutputAttrs].offset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);	//提取属性长度
+
+			(*nOutputAttrs)++;
+
+			rc = CloseScan(FileScan);
+			if (rc != SUCCESS)return rc;
+		}
+		//收尾
+		free(FileScan);
+
+		rc = RM_CloseFile(hSyscolumns);
+		if (rc != SUCCESS)return rc;
+		free(hSyscolumns);
+		//free(syscolumnsRec);
+		free(checkerCons);
+	}
 
 	return SUCCESS;
 }
