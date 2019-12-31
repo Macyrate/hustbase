@@ -418,9 +418,11 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 								//对于每一个属于该表的列
 
 								data[nData] = (char*)malloc(totalLength * sizeof(char));
-								memcpy(data[nData++] + currentResult->offset[j], currentRec->pData + currentAttrs[j].offset, currentResult->length[j] * sizeof(char));
+								memcpy(data[nData] + currentResult->offset[j], currentRec->pData + currentAttrs[j].offset, currentResult->length[j] * sizeof(char));
 
 							}
+
+							nData++;
 
 						}
 
