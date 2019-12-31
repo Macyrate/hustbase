@@ -9,10 +9,10 @@
 //ret = -1 有"*"但还有其他奇怪的东西
 int FindOnlyStar(int nInputSelAttrs, RelAttr** selAttrs)
 {
-	
+
 	int ret = 0;
 
-	for (int i = nInputSelAttrs; i > 0; i--)
+	for (int i = nInputSelAttrs - 1; i >= 0; i--)
 	{
 		if (strcmp(selAttrs[i]->attrName, "*") != 0)
 			continue;
@@ -83,7 +83,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 	//一般情况
 	else
 	{
-		for (int i = nInputSelAttrs; i > 0; i--)
+		for (int i = nInputSelAttrs - 1; i >= 0; i--)
 		{
 			if (selAttrs[i]->relName != NULL && strcmp(selAttrs[i]->relName, relName) != 0)			//有表名且表名不符，跳过
 				continue;
