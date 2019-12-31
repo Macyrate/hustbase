@@ -318,6 +318,18 @@ RC CreateTable(char* relName, int attrCount, AttrInfo* attributes)
 
 	if (strlen(relName) >= 20) return TABLE_NAME_ILLEGAL;
 
+	if (attrCount > 1)
+	{
+		for (int i = 0; i < attrCount - 1; i++)
+		{
+			for (int j = i + 1; j < attrCount; j++)
+			{
+				if (strcmp(attributes[i].attrName, attributes[j].attrName) == 0)
+					return TABLE_COLUMN_ERROR;
+			}
+		}
+	}
+
 	CFileFind fileFind;
 	if (fileFind.FindFile(relName))
 		return	TABLE_EXIST;					//检查表是否存在
