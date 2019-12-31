@@ -64,10 +64,10 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		(*nOutputAttrs)++;
 
 		rc = CloseScan(FileScan);
+		if (rc != SUCCESS)return rc;
 	}
 
 	//สีฮฒ
-	if (rc != SUCCESS)return rc;
 	free(FileScan);
 
 	rc = RM_CloseFile(hSyscolumns);
