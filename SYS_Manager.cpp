@@ -48,8 +48,25 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 				for (int j = 0; j < col_num; j++)
 				{
 
-					rows[row_num][j] = (char*)malloc(currentRes->length[j] * sizeof(char));
-					memcpy(rows[row_num][j], *(currentRes->res[i]) + currentRes->offset[j], currentRes->length[j] * sizeof(char));
+					switch (currentRes->type[j])
+					{
+
+					case chars:
+						rows[row_num][j] = (char*)malloc(currentRes->length[j] * sizeof(char));
+						memcpy(rows[row_num][j], *(currentRes->res[i]) + currentRes->offset[j], currentRes->length[j] * sizeof(char));
+						break;
+
+					case ints:
+						rows[row_num][j] = (char*)malloc(10 * sizeof(char));
+						sprintf(rows[row_num][j], "%d", *(int*)(*(currentRes->res[i]) + currentRes->offset[j]));
+						break;
+
+					case floats:
+						rows[row_num][j] = (char*)malloc(10 * sizeof(char));
+						sprintf(rows[row_num][j], "%f", *(float*)(*(currentRes->res[i]) + currentRes->offset[j]));
+						break;
+
+					}
 
 				}
 
