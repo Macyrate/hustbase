@@ -23,7 +23,7 @@ typedef struct
 	int offset;
 } Attr;
 
-RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int nOutputAttrs, Attr* attrs);
+RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int* nOutputAttrs, Attr* attrs);
 RC AddResult(SelResult* res, int nData, char** data);
 RC Init_Result(SelResult* res, char* relName, int nAttrs, Attr* Attrs);
 RC Init_Result(SelResult* res, SelResult* father);
