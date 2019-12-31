@@ -566,8 +566,8 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 		if (valueType != attrType) {		//检查条件中的值类型是否与实际属性类型一致
 			return SQL_SYNTAX;
 		}
-		attrLength = *(int*)syscolumnsRec->pData + 42 + sizeof(int);		//提取属性长度
-		attrOffset = *(int*)syscolumnsRec->pData + 42 + sizeof(int) * 2;		//提取属性偏移量
+		attrLength = *(int*)(syscolumnsRec->pData + 42 + sizeof(int));		//提取属性长度
+		attrOffset = *(int*)(syscolumnsRec->pData + 42 + sizeof(int) * 2);		//提取属性偏移量
 
 
 		//语义检测通过，构造扫描条件
