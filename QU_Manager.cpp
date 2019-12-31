@@ -354,7 +354,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 		int nAttrs = 0;
 		Attr* currentAttrs = (Attr*)malloc(sizeof(Attr));
-		rc = GetAttrsByRelName(currentRelName, nSelAttrs, selAttrs, nAttrs, currentAttrs);
+		rc = GetAttrsByRelName(currentRelName, nSelAttrs, selAttrs, &nAttrs, currentAttrs);
 
 		if (rc == SUCCESS)
 		{
