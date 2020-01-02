@@ -1,5 +1,5 @@
-#include "IX_Helper.h"
 #include "StdAfx.h"
+#include "IX_Helper.h"
 
 bool compareLeafString(char *left, char *right, CompOp oper) {
   int cmpResult = strcmp(left, right);
