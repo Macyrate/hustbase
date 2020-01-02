@@ -744,10 +744,10 @@ RC Insert(char* relName, int nValues, Value* values) {
 		if ((values + i)->type == AttrType::chars) {																//如果属性类型是字符串	
 			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + +nValues - i - 1)->attrlength)				//检查要插入的字符串是否过长
 				return SQL_SYNTAX;
-			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, strlen((char*)(values + i)->data));					//复制字符串长度的内容
+			strcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (char*)(values + i)->data);					//复制字符串长度的内容
 		}
 		else
-			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, (rgstSyscolumns + +nValues - i - 1)->attrlength);		//复制内容
+			strcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (char*)(values + i)->data);		//复制内容
 
 		if ((rgstSyscolumns + +nValues - i - 1)->ix_flag != '0')					//有索引则尝试打开索引
 		{
