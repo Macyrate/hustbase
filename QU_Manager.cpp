@@ -422,6 +422,12 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		char* currentRelName = relations[i];
 		SelResult* currentResult = singleResults + i;;
 
+		//若表名不存在
+
+		CFileFind fileFind;
+		if (!fileFind.FindFile(currentRelName))
+			return TABLE_NOT_EXIST;
+
 		//初始化当前表的扫描结果集合
 
 		int nAttrs = 0;
