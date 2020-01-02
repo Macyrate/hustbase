@@ -253,8 +253,8 @@ void getRightPageData(PF_PageHandle *pageHandle, PF_PageHandle *rightHandle,
   char *pageKeys;
   char *pageRids;
   GetData(pageHandle, &pageData);
-  IX_Node *pageNodeControlInfo = (IX_Node *)(pageData + sizeof(IX_FileHeader));
-  int pageKeynum = pageNodeControlInfo->keynum;
+  IX_Node *pageNodeInfo = (IX_Node *)(pageData + sizeof(IX_FileHeader));
+  int pageKeynum = pageNodeInfo->keynum;
   pageKeys = pageData + sizeof(IX_FileHeader) + sizeof(IX_Node);
   pageRids = pageKeys + order * attrLength;
 
@@ -277,7 +277,7 @@ void getRightPageData(PF_PageHandle *pageHandle, PF_PageHandle *rightHandle,
     memcpy(rightRids, rightRids + sizeof(RID), (rightKeynum - 1) * sizeof(RID));
 
     rightNodeControlInfo->keynum = rightKeynum - 1;
-    pageNodeControlInfo->keynum = pageKeynum + 1;
+    pageNodeInfo->keynum = pageKeynum + 1;
     status = 3;
   } else {
     memcpy(pageKeys + pageKeynum * attrLength, rightKeys,
@@ -286,10 +286,10 @@ void getRightPageData(PF_PageHandle *pageHandle, PF_PageHandle *rightHandle,
            rightKeynum * sizeof(RID));
 
     rightNodeControlInfo->keynum = 0;
-    pageNodeControlInfo->keynum = pageKeynum + rightKeynum;
+    pageNodeInfo->keynum = pageKeynum + rightKeynum;
     status = 4;
 
-    pageNodeControlInfo->brother = rightNodeControlInfo->brother;
+    pageNodeInfo->brother = rightNodeControlInfo->brother;
   }
   MarkDirty(pageHandle);
   UnpinPage(pageHandle);
@@ -352,8 +352,8 @@ void getFromLeft(PF_PageHandle *pageHandle, PF_PageHandle *leftHandle,
   char *pageRids;
 
   GetData(pageHandle, &pageData);
-  IX_Node *pageNodeControlInfo = (IX_Node *)(pageData + sizeof(IX_FileHeader));
-  int pageKeynum = pageNodeControlInfo->keynum;
+  IX_Node *pageNodeInfo = (IX_Node *)(pageData + sizeof(IX_FileHeader));
+  int pageKeynum = pageNodeInfo->keynum;
 
   pageKeys = pageData + sizeof(IX_FileHeader) + sizeof(IX_Node);
 
@@ -368,7 +368,7 @@ void getFromLeft(PF_PageHandle *pageHandle, PF_PageHandle *leftHandle,
     memcpy(pageRids, leftRids + (leftKeynum - 1) * sizeof(RID), sizeof(RID));
 
     lNodeInfo->keynum = leftKeynum - 1;
-    pageNodeControlInfo->keynum = pageKeynum + 1;
+    pageNodeInfo->keynum = pageKeynum + 1;
     status = 1;
 
   } else {
@@ -378,8 +378,8 @@ void getFromLeft(PF_PageHandle *pageHandle, PF_PageHandle *leftHandle,
            pageKeynum * sizeof(RID));
 
     lNodeInfo->keynum = leftKeynum + pageKeynum;
-    pageNodeControlInfo->keynum = 0;
-    lNodeInfo->brother = pageNodeControlInfo->brother;
+    pageNodeInfo->keynum = 0;
+    lNodeInfo->brother = pageNodeInfo->brother;
     status = 2;
   }
   MarkDirty(pageHandle);
@@ -477,15 +477,16 @@ int addKey(char *key, RID *val, int *effectiveLength, char *keyInsert,
 
 int removeKey(char *key, RID *val, int *eLength, char *keyDelete, AttrType type,
               int attrLength) {
-  int keyOffset;
+  int keyOffset = 0;
   switch (type) {
-    case chars:
+    case ints:
+    case floats:
       for (keyOffset = 0; keyOffset < (*eLength); keyOffset++) {
-        int rtn = strcmp(keyDelete + sizeof(RID),
-                         key + keyOffset * attrLength + sizeof(RID));
-        if (rtn < 0)
+        int sub = *((float *)keyDelete + sizeof(RID)) -
+                  *((float *)(key + keyOffset * attrLength + sizeof(RID)));
+        if (sub < 0)
           break;
-        else if (rtn == 0) {
+        else if (sub == 0) {
           if (((RID *)keyDelete)->pageNum ==
               ((RID *)key + keyOffset * attrLength)->pageNum) {
             if (((RID *)keyDelete)->slotNum ==
@@ -506,14 +507,13 @@ int removeKey(char *key, RID *val, int *eLength, char *keyDelete, AttrType type,
         }
       }
       break;
-    case ints:
-    case floats:
+    case chars:
       for (keyOffset = 0; keyOffset < (*eLength); keyOffset++) {
-        int sub = *((float *)keyDelete + sizeof(RID)) -
-                  *((float *)(key + keyOffset * attrLength + sizeof(RID)));
-        if (sub < 0)
+        int rtn = strcmp(keyDelete + sizeof(RID),
+                         key + keyOffset * attrLength + sizeof(RID));
+        if (rtn < 0)
           break;
-        else if (sub == 0) {
+        else if (rtn == 0) {
           if (((RID *)keyDelete)->pageNum ==
               ((RID *)key + keyOffset * attrLength)->pageNum) {
             if (((RID *)keyDelete)->slotNum ==
