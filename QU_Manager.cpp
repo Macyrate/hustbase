@@ -63,7 +63,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		strcpy((char*)checkerCons[0].Rvalue, relName);
 
 		//扫描SYSCOLUMNS，获取属性对应记录
-		rc = OpenScan(FileScan, hSyscolumns, 2, checkerCons);
+		rc = OpenScan(FileScan, hSyscolumns, 1, checkerCons);
 		if (rc != SUCCESS)return rc;
 		while (GetNextRec(FileScan, syscolumnsRec) == SUCCESS) {
 			//提取属性信息

@@ -76,7 +76,7 @@ GetNextRec_REDO:
 	{
 
 		rec->pData = (char*)malloc(rmFileScan->pRMFileHandle->recordSize * sizeof(char));
-		rec->pData = "EOF\0";
+		*rec->pData = '\0';
 		return RM_NOMORERECINMEM;
 
 	}
