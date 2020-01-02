@@ -231,17 +231,17 @@ RC CloseIndexScan(IX_IndexScan *indexScan) {
 }
 
 RC GetIndexTree(char *fileName, Tree *index) {
+  char *pageData = NULL;
+  char *pageKeys = NULL;
+  char *pageRids = NULL;
+  IX_Node *nodeControlInfo = NULL;
+
   IX_IndexHandle *indexHandle = new IX_IndexHandle;
   if (openFile(fileName, &indexHandle->fileHandle)) return FAIL;
-
-  char *pageData = nullptr;
-  char *pageKeys = nullptr;
-  char *pageRids = nullptr;
-  IX_Node *nodeControlInfo = nullptr;
-
+  
   Tree_Node *treeNode = new Tree_Node;
   Tree_Node *bnode = new Tree_Node;
-  Tree_Node *firstChild = nullptr;
+  Tree_Node *firstChild = NULL;
 
   index->attrLength = indexHandle->fileHeader.attrLength;
   index->attrType = indexHandle->fileHeader.attrType;
@@ -258,8 +258,8 @@ RC GetIndexTree(char *fileName, Tree *index) {
   index->root->keyNum = nodeControlInfo->keynum;
   memcpy(index->root->keys, pageKeys,
          nodeControlInfo->keynum * indexHandle->fileHeader.attrLength);
-  index->root->sibling = nullptr;
-  index->root->parent = nullptr;
+  index->root->sibling = NULL;
+  index->root->parent = NULL;
 
   return SUCCESS;
 }
