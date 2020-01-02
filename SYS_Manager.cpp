@@ -747,7 +747,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 			strcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (char*)(values + i)->data);					//复制字符串长度的内容
 		}
 		else
-			strcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (char*)(values + i)->data);		//复制内容
+			memcpy(columntoInsert + (rgstSyscolumns + +nValues - i - 1)->attroffset, (values + i)->data, (rgstSyscolumns + +nValues - i - 1)->attrlength);
 
 		if ((rgstSyscolumns + +nValues - i - 1)->ix_flag != '0')					//有索引则尝试打开索引
 		{
