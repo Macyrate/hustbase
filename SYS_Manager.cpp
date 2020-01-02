@@ -548,7 +548,7 @@ RC GetScanCons(char* relName, int nConditions, Condition* conditions, Con* retCo
 	//hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
 	rid = (RID*)malloc(sizeof(RID));
 
-	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
 	FileScan->bOpen = false;
 
 	hSyscolumns->bOpen = false;
@@ -673,7 +673,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 	hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
 	rid = (RID*)malloc(sizeof(RID));
 
-	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
 	FileScan->bOpen = false;
 
 	rgstSyscolumns = (SysColumn*)calloc(nValues, sizeof(SysColumn));
@@ -734,7 +734,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 		i++;
 	}
 	CloseScan(FileScan);
-	//free(FileScan);
+	free(FileScan);
 
 	//检查values是否与目的表属性列表一致，构造元组，添加索引记录
 	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);							//按偏移量升序整理提取的属性列表
@@ -793,7 +793,7 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 
 	RC rc;
 	Con* cons = (Con*)calloc(nConditions, sizeof(Con));
-	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
 	RM_FileHandle* hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
 	tableRec->bValid = false;
@@ -814,7 +814,7 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	}
 
 	CloseScan(FileScan);
-	//free(FileScan);
+	free(FileScan);
 	rc = RM_CloseFile(hTable);
 	if (rc != SUCCESS)return rc;
 	free(hTable);
@@ -848,7 +848,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	hTable->bOpen = false;
 	//hIndex = (IX_IndexHandle*)calloc(1, sizeof(IX_IndexHandle));
 	rid = (RID*)malloc(sizeof(RID));
-	FileScan = (RM_FileScan*)calloc(1, sizeof(FileScan));
+	FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
 	FileScan->bOpen = false;
 
 	//对传入conditions进行语义分析，得到扫描条件
@@ -917,7 +917,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	}
 
 	CloseScan(FileScan);
-	//free(FileScan);
+	free(FileScan);
 	rc = RM_CloseFile(hTable);
 	if (rc != SUCCESS)return rc;
 	free(hTable);

@@ -36,7 +36,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 	RC rc;
 	RM_FileHandle* hSyscolumns = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
 	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
-	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(syscolumnsRec));
+	RM_Record* syscolumnsRec = (RM_Record*)calloc(1, sizeof(RM_Record));
 	Con* checkerCons = (Con*)calloc(2, sizeof(Con));
 	hSyscolumns->bOpen = false;
 	FileScan->bOpen = false;
@@ -131,7 +131,7 @@ RC GetAttrsByRelName(char* relName, int nInputSelAttrs, RelAttr** selAttrs, int*
 		rc = RM_CloseFile(hSyscolumns);
 		if (rc != SUCCESS)return rc;
 		free(hSyscolumns);
-		//free(syscolumnsRec);
+		free(syscolumnsRec);
 		free(checkerCons);
 	}
 
