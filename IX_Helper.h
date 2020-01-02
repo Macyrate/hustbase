@@ -2,6 +2,7 @@
 #define IX_HELPER_H_H
 #include "IX_Manager.h"
 
+// 帮助函数
 int addKey(char *key, RID *val, int *effectiveLength, char *keyInsert,
            const RID *valInsert, AttrType type, int attrLength);
 int removeKey(char *key, RID *val, int *eLength, char *keyDelete, AttrType type,
