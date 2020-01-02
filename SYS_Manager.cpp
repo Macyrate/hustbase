@@ -712,7 +712,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 	RM_CloseFile(hSystables);
 	free(hSystables);
 
-	if (columnsNum != nValues) return SQL_SYNTAX;					//若INSERT语句中列数与表的列数不符，报错
+	if (columnsNum != nValues) return FIELD_MISSING;					//若INSERT语句中列数与表的列数不符，报错
 
 	//提取要插入目的表的属性列表
 	rc = OpenScan(FileScan, hSyscolumns, 0, NULL);
@@ -740,7 +740,7 @@ RC Insert(char* relName, int nValues, Value* values) {
 	std::sort((SysColumn*)rgstSyscolumns, (SysColumn*)rgstSyscolumns + nValues, ColCmp);							//按偏移量升序整理提取的属性列表
 	char* columntoInsert = (char*)calloc(1, sizeof(char) * recordSize);
 	for (int i = 0; i < nValues; i++) {
-		if ((values + i)->type != (rgstSyscolumns + nValues - i - 1)->attrtype) return SQL_SYNTAX;					//检查属性类型是否一致
+		if ((values + i)->type != (rgstSyscolumns + nValues - i - 1)->attrtype) return FIELD_TYPE_MISMATCH;					//检查属性类型是否一致
 		if ((values + i)->type == AttrType::chars) {																//如果属性类型是字符串	
 			if (strlen((char*)(values + i)->data) > (rgstSyscolumns + +nValues - i - 1)->attrlength)				//检查要插入的字符串是否过长
 				return SQL_SYNTAX;
