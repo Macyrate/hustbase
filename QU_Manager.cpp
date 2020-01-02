@@ -403,6 +403,10 @@ RC Query(char* sql, SelResult* res)
 RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, int nConditions, Condition* conditions, SelResult* res)
 {
 
+	//屏蔽多表查询
+
+	if (nRelations > 1) return SQL_SYNTAX;
+
 	RC rc;
 
 	//首先分表扫描，然后投影并拼接
@@ -570,6 +574,11 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 		Join(tmpResult, singleResults + i, res);
 		memcpy(tmpResult, res, sizeof(SelResult));
 	}
+
+	//收拾垃圾
+
+	free(tmpResult);
+	free(singleResults);
 
 	return SUCCESS;
 }

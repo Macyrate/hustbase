@@ -19,6 +19,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	{
 		SelResult res;
 		rc = Query(sql, &res);
+		if (rc != SUCCESS) return;
 		//将查询结果处理一下，整理成下面这种形式
 		//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
 		int col_num = res.col_num;
@@ -804,7 +805,7 @@ RC Delete(char* relName, int nConditions, Condition* conditions) {
 	rc = GetScanCons(relName, nConditions, conditions, cons);
 	if (rc != SUCCESS)
 		return rc;
-	
+
 	//对数据表进行扫描
 	rc = OpenScan(FileScan, hTable, nConditions, cons);
 	if (rc != SUCCESS)return rc;
@@ -833,7 +834,7 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 	CFileFind fileFind;
 	if (!fileFind.FindFile(relName))
 		return	TABLE_NOT_EXIST;					//检查表是否存在
-	
+
 	RC rc;
 	RM_FileHandle* hSyscolumns, * hTable;
 	//IX_IndexHandle* hIndex;
