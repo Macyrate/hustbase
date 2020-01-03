@@ -265,6 +265,8 @@ RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
 
 		outRes->length[i] = resA->length[i];
 		outRes->offset[i] = resA->offset[i];
+		outRes->type[i] = resA->type[i];
+		strcpy(outRes->fields[i], resA->fields[i]);
 
 	}
 
@@ -277,6 +279,8 @@ RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
 
 		outRes->length[i + resA->col_num] = resB->length[i];
 		outRes->offset[i + resA->col_num] = resB->offset[i] + currentOffset;
+		outRes->type[i + resA->col_num] = resB->type[i];
+		strcpy(outRes->fields[i + resA->col_num], resB->fields[i]);
 
 	}
 
@@ -315,7 +319,7 @@ RC Join(SelResult* resA, SelResult* resB, SelResult* outRes)
 
 					//将后半部填充为b中的数据
 
-					memcpy(data[nData++], *(currentB->res[j]), totalLengthB * sizeof(char));
+					memcpy(data[nData++] + totalLengthA, *(currentB->res[j]), totalLengthB * sizeof(char));
 
 				}
 
@@ -405,7 +409,7 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 	//屏蔽多表查询
 
-	if (nRelations > 1) return SQL_SYNTAX;
+	//if (nRelations > 1) return SQL_SYNTAX;
 
 	RC rc;
 
@@ -414,12 +418,12 @@ RC Select(int nSelAttrs, RelAttr** selAttrs, int nRelations, char** relations, i
 
 	SelResult* singleResults = (SelResult*)malloc(nRelations * sizeof(SelResult));
 
-	for (int i = 0; i < nRelations; i++)
+	for (int i = nRelations - 1; i >= 0; i--)
 	{
 
 		//当前表名
 
-		char* currentRelName = relations[i];
+		char* currentRelName = relations[nRelations - 1 - i];
 		SelResult* currentResult = singleResults + i;;
 
 		//若表名不存在
