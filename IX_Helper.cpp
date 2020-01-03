@@ -568,6 +568,7 @@ int addKeyShift(int keyOffset, char *key, RID *val, int *effectiveLength,
   return ++(*effectiveLength);
 }
 
+// 将值进行转移
 void removeKeyShift(int keyOffset, char *key, RID *val, int *eLength,
                     int attrLength) {
   char *buffer = (char *)malloc((*eLength - keyOffset - 1) * attrLength);
