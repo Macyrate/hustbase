@@ -44,16 +44,17 @@ void _insert(IX_IndexHandle *indexHandle, void *pData, const RID *rid,
              PF_PageHandle *pageInsert) {
   IX_Node *pageC =
       (IX_Node *)(pageInsert->pFrame->page.pData + sizeof(IX_FileHeader));
-  int posInsert = addKey(pageC->keys, pageC->rids, &pageC->keynum,
-                         (char *)pData, rid, indexHandle->fileHeader.attrType,
-                         indexHandle->fileHeader.keyLength);
+  int posInsert = addKey(
+      pageC->keys, pageC->rids, &pageC->keynum, (char *)pData,
+      rid, indexHandle->fileHeader.attrType, indexHandle->fileHeader.keyLength);
   if (pageC->keynum < indexHandle->fileHeader.order) {
     if (0 == posInsert) {
       PageNum pageNum;
       PF_PageHandle *parentPageHandle = new PF_PageHandle;
 
       GetPageNum(pageInsert, &pageNum);
-      GetThisPage(&indexHandle->fileHandle, pageC->parent, parentPageHandle);
+      GetThisPage(&indexHandle->fileHandle, pageC->parent,
+                  parentPageHandle);
       deleteOrAlterParentNode(parentPageHandle, &indexHandle->fileHandle,
                               indexHandle->fileHeader.order,
                               indexHandle->fileHeader.attrType,
@@ -148,9 +149,9 @@ RC _delete(IX_IndexHandle *indexHandle, void *pData, const RID *rid,
       (IX_Node *)(pageDelete->pFrame->page.pData + sizeof(IX_FileHeader));
   PF_FileHandle *fileHandle = &indexHandle->fileHandle;
 
-  int offset = removeKey(pageC->keys, pageC->rids, &pageC->keynum,
-                         (char *)pData, indexHandle->fileHeader.attrType,
-                         indexHandle->fileHeader.keyLength);
+  int offset = removeKey(
+      pageC->keys, pageC->rids, &pageC->keynum, (char *)pData,
+      indexHandle->fileHeader.attrType, indexHandle->fileHeader.keyLength);
   if (-1 == offset) return FAIL;
   int threshold = ceil((float)indexHandle->fileHeader.order / 2);
 
@@ -257,7 +258,7 @@ void getRightPageData(PF_PageHandle *pageHandle, PF_PageHandle *rightHandle,
   int pageKeynum = pageNodeControlInfo->keynum;
   pageKeys = pageData + sizeof(IX_FileHeader) + sizeof(IX_Node);
   pageRids = pageKeys + order * attrLength;
-
+  
   char *rightData;
   char *rightKeys;
   char *rightRids;
@@ -304,10 +305,10 @@ void getLeftBrother(PF_PageHandle *pageHandle, PF_FileHandle *fileHandle,
   PageNum nowPage;
   GetPageNum(pageHandle, &nowPage);
   GetData(pageHandle, &data);
-  IX_Node *nodeInfo = (IX_Node *)(data + sizeof(IX_FileHeader));
+  IX_Node *nodeControlInfo = (IX_Node *)(data + sizeof(IX_FileHeader));
 
   PF_PageHandle *parentPageHandle = new PF_PageHandle;
-  GetThisPage(fileHandle, nodeInfo->parent, parentPageHandle);
+  GetThisPage(fileHandle, nodeControlInfo->parent, parentPageHandle);
   char *parentData;
   char *parentKeys;
   char *parentRids;
@@ -392,41 +393,41 @@ void deleteOrAlterParentNode(PF_PageHandle *parentPageHandle,
                              PF_FileHandle *fileHandle, int order,
                              AttrType attrType, int attrLength, PageNum pageNum,
                              void *pData, int parentOrder, bool isDelete) {
-  IX_Node *nodeInfo;
+  IX_Node *nodeControlInfo;
   char *parentData;
   char *parentKeys;
   char *parentRids;
   int offset = parentOrder;
+  bool rootFlag = true;
 
-  while (1) {
+  while (true) {
     GetData(parentPageHandle, &parentData);
-    nodeInfo = (IX_Node *)(parentData + sizeof(IX_FileHeader));
-    int keynum = nodeInfo->keynum;
+    nodeControlInfo = (IX_Node *)(parentData + sizeof(IX_FileHeader));
+    int keynum = nodeControlInfo->keynum;
     parentKeys = parentData + sizeof(IX_FileHeader) + sizeof(IX_Node);
     parentRids = parentKeys + order * attrLength;
 
     if (isDelete) {
-      memcpy(parentRids + offset * sizeof(RID),
-             parentRids + (offset + 1) * sizeof(RID),
-             (keynum - offset - 1) * sizeof(RID));
       memcpy(parentKeys + offset * attrLength,
              parentKeys + (offset + 1) * attrLength,
              (keynum - offset - 1) * attrLength);
-
-      nodeInfo->keynum = keynum - 1;
+      memcpy(parentRids + offset * sizeof(RID),
+             parentRids + (offset + 1) * sizeof(RID),
+             (keynum - offset - 1) * sizeof(RID));
+      nodeControlInfo->keynum = keynum - 1;
       break;
     } else {
       memcpy(parentKeys + offset * attrLength, pData, attrLength);
-      if (offset == 0 && nodeInfo->parent != 0) {
+      if (offset == 0 && nodeControlInfo->parent != 0) {
         MarkDirty(parentPageHandle);
         UnpinPage(parentPageHandle);
 
         GetPageNum(parentPageHandle, &pageNum);
-        GetThisPage(fileHandle, nodeInfo->parent, parentPageHandle);
+        GetThisPage(fileHandle, nodeControlInfo->parent, parentPageHandle);
       } else
         break;
     }
-    offset = nodeInfo->parentOrder;
+    offset = nodeControlInfo->parentOrder;
   }
   MarkDirty(parentPageHandle);
   UnpinPage(parentPageHandle);
@@ -610,8 +611,8 @@ int getNodeByKey(IX_IndexHandle *indexHandle, void *targetKey) {
         case 2:
           targetVal = *((float *)targetKey + sizeof(RID));
           iVal = *(float *)(nodeInfo->keys +
-                            offset * indexHandle->fileHeader.keyLength +
-                            sizeof(RID));
+                                offset * indexHandle->fileHeader.keyLength +
+                                sizeof(RID));
           rtn = (targetVal < iVal) ? -1 : ((targetVal == iVal) ? 0 : 1);
           break;
         default:
