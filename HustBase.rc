@@ -186,9 +186,9 @@ STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "关于 梦想封印数据库"
 FONT 9, "微软雅黑 Light", 290, 0, 0x86
 BEGIN
-    ICON            IDR_MAINFRAME,IDC_STATIC,9,15,9,8
-    LTEXT           "梦想封印 企业版",IDC_STATIC,34,9,102,7,SS_NOPREFIX
-    LTEXT           "赛钱奉纳 版权没有 (C) 2019",IDC_STATIC,34,22,102,7
+    ICON            IDR_MAINFRAME,IDC_STATIC,9,15,20,20
+    LTEXT           "梦想封印 Enterprise v0.0.1-alpha",IDC_STATIC,34,9,117,7,SS_NOPREFIX
+    LTEXT           "赛钱奉纳 版权没有 (C) 2019-2020",IDC_STATIC,34,22,121,7
     DEFPUSHBUTTON   "确定",IDOK,153,6,43,12,WS_GROUP
 END
 
