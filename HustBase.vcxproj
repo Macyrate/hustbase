@@ -143,7 +143,6 @@
     <ClCompile Include="HustBase.cpp" />
     <ClCompile Include="HustBaseDoc.cpp" />
     <ClCompile Include="HustBaseView.cpp" />
-    <ClCompile Include="IX_Helper.cpp" />
     <ClCompile Include="IX_Manager.cpp" />
     <ClCompile Include="lex.yy.c">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">NotUsing</PrecompiledHeader>
@@ -179,7 +178,6 @@
     <ClInclude Include="HustBaseDoc.h" />
     <ClInclude Include="HustBaseView.h" />
     <ClInclude Include="iParseInterface.h" />
-    <ClInclude Include="IX_Helper.h" />
     <ClInclude Include="IX_Manager.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="parse.h" />

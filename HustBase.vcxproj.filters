@@ -69,9 +69,6 @@
     <ClCompile Include="DebugLogger.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="IX_Helper.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="HustBase.rc">
@@ -140,9 +137,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="DebugLogger.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="IX_Helper.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

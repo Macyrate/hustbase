@@ -1,265 +1,331 @@
-#include "StdAfx.h"
+#include "stdafx.h"
 #include "IX_Manager.h"
-#include "RM_Manager.h"
-#include "IX_Helper.h"
 
-RC CreateIndex(const char *fileName, AttrType attrType, int attrLength) {
-  if (CreateFile(fileName)) return FAIL;
+int threshold = 0;
 
-  PF_FileHandle *file = new PF_FileHandle;
-  if (openFile((char *)fileName, file)) return FAIL;
+/**
+ * 此函数创建一个名为fileName的索引。
+ * attrType描述被索引属性的类型，attrLength描述被索引属性的长度。
+ */
+RC CreateIndex(char* fileName, AttrType attrType, int attrLength) {
+	//PF_FileHandle* fileHandle = NULL;
+	//PageNum pageNum;
+	////创建索引文件
+	//CreateFile(fileName);
+	//fileHandle = (PF_FileHandle*)malloc(sizeof(PF_FileHandle));
+	////打开索引文件
+	//openFile(fileName, fileHandle);
 
-  PF_PageHandle *firstPage = new PF_PageHandle;
+	//PF_PageHandle* firstPageHandle = NULL;
+	//firstPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	////分配索引文件的第一个页面
+	//AllocatePage(fileHandle, firstPageHandle);
+	//GetPageNum(firstPageHandle, &pageNum);
 
-  if (AllocatePage(file, firstPage)) {
-    free(firstPage);
-    return FAIL;
-  }
+	////生成索引控制信息
+	//IX_FileHeader index_FileHeader;
+	//index_FileHeader.attrLength = attrLength;
+	//index_FileHeader.keyLength = attrLength + sizeof(RID);
+	//index_FileHeader.attrType = attrType;
+	//index_FileHeader.rootPage = pageNum;
+	//index_FileHeader.first_leaf = pageNum;
+	//int order = (PF_PAGE_SIZE - (sizeof(IX_FileHeader) + sizeof(IX_Node))) /
+	//	(2 * sizeof(RID) + attrLength);
+	//index_FileHeader.order = order;
+	//threshold = order >> 1;
+	////获取第一页的数据区
+	//char* pData;
+	//GetData(firstPageHandle, &pData);
+	//memcpy(pData, &index_FileHeader, sizeof(IX_FileHeader));
 
-  IX_FileHeader *fileHeader = (IX_FileHeader *)firstPage->pFrame->page.pData;
-  fileHeader->attrLength = attrLength;
-  fileHeader->attrType = attrType;
-  fileHeader->first_leaf = 1;
-  fileHeader->keyLength = attrLength + sizeof(RID);
+	////初始化节点控制信息，将根节点的置为叶子节点，关键字数为0，
+	//IX_Node index_NodeControl;
+	//index_NodeControl.keynum = 0;
+	//index_NodeControl.parent = 0;
+	//index_NodeControl.brother = 0;
+	//index_NodeControl.is_leaf = 1;
+	//memcpy(pData + sizeof(IX_FileHeader), &index_NodeControl, sizeof(IX_Node));
+	//MarkDirty(firstPageHandle);
 
-  fileHeader->order = (PF_PAGE_SIZE - sizeof(IX_FileHeader) - sizeof(IX_Node)) /
-                          (2 * sizeof(RID) + attrLength) -
-                      1;
-  fileHeader->rootPage = 1;
+	//UnpinPage(firstPageHandle);
+	////关闭索引文件
+	//CloseFile(fileHandle);
+	//free(firstPageHandle);
+	//free(fileHandle);
 
-  IX_Node *ixNode =
-      (IX_Node *)(firstPage->pFrame->page.pData + sizeof(IX_FileHeader));
-  ixNode->is_leaf = 1;
-  ixNode->keynum = 0;
-  ixNode->parent = 0;
-  ixNode->parentOrder = 0;
-  ixNode->brother = -1;
-  ixNode->keys = (char *)(firstPage->pFrame->page.pData +
-                          sizeof(IX_FileHeader) + sizeof(IX_Node));
-  ixNode->rids =
-      (RID *)(ixNode->keys + (fileHeader->order + 1) * fileHeader->keyLength);
-  MarkDirty(firstPage);
-  UnpinPage(firstPage);
-  free(firstPage);
-  CloseFile(file);
-  return SUCCESS;
+	return SUCCESS;
 }
 
-RC OpenIndex(const char *fileName, IX_IndexHandle *indexHandle) {
-  if (indexHandle->bOpen) return RM_FHOPENNED;
-  indexHandle->bOpen = TRUE;
+RC OpenIndex(const char* fileName, IX_IndexHandle* indexHandle) {
+	//RC rc;
+	//PF_FileHandle pfFileHandle;
+	//PF_PageHandle pfPageHandle;
+	//char* data;
 
-  if (openFile((char *)fileName, &indexHandle->fileHandle)) return FAIL;
+	//memset(indexHandle, 0, sizeof(IX_IndexHandle));
 
-  PF_PageHandle *ctrPage = NULL;
-  if (GetThisPage(&indexHandle->fileHandle, 1, ctrPage)) {
-    CloseFile(&indexHandle->fileHandle);
-    return FAIL;
-  }
+	//if ((rc = openFile((char*)fileName, &pfFileHandle)) ||
+	//	(rc = GetThisPage(&pfFileHandle, 1, &pfPageHandle))) {
+	//	return rc;
+	//}
 
-  IX_FileHeader *headerInfo;
+	//indexHandle->bOpen = true;
+	//if (rc = GetData(&pfPageHandle, &data)) {
+	//	return rc;
+	//}
+	//indexHandle->fileHeader = *(IX_FileHeader*)data;
+	//indexHandle->fileHandle = pfFileHandle;
+	//if (rc = UnpinPage(&pfPageHandle)) {
+	//	return rc;
+	//}
 
-  headerInfo = (IX_FileHeader *)ctrPage->pFrame->page.pData;
-  indexHandle->fileHeader.keyLength = headerInfo->keyLength;
-  indexHandle->fileHeader.order = headerInfo->order;
-  indexHandle->fileHeader.rootPage = headerInfo->rootPage;
-  indexHandle->fileHeader.attrLength = headerInfo->attrLength;
-  indexHandle->fileHeader.attrType = headerInfo->attrType;
-  indexHandle->fileHeader.first_leaf = headerInfo->first_leaf;
-
-  return SUCCESS;
+	return SUCCESS;
 }
 
-RC CloseIndex(IX_IndexHandle *indexHandle) {
-  if (!indexHandle->bOpen) return IX_ISCLOSED;
-
-  if (CloseFile(&indexHandle->fileHandle)) return FAIL;
-  indexHandle->bOpen = FALSE;
-
-  return SUCCESS;
+// TODO: 可能存在bug
+//关闭索引文件
+RC CloseIndex(IX_IndexHandle* indexHandle) {
+	//PF_FileHandle fileHandle = indexHandle->fileHandle;
+	//CloseFile(&fileHandle);
+	return SUCCESS;
 }
 
-RC InsertEntry(IX_IndexHandle *indexHandle, void *pData, const RID *rid) {
-  int pageInsertNumber = getNodeByKey(indexHandle, pData);
-  PF_PageHandle *pageInsert = new PF_PageHandle;
-  GetThisPage(&indexHandle->fileHandle, pageInsertNumber, pageInsert);
-  _insert(indexHandle, pData, rid, pageInsert);
-  return FAIL;
+//索引的插入
+RC InsertEntry(IX_IndexHandle* indexHandle, void* pData, RID* rid) {
+	//PF_FileHandle fileHandle = indexHandle->fileHandle;
+	//IX_FileHeader fileHeader = indexHandle->fileHeader;
+	//PF_PageHandle* pageHandle = NULL;
+	////获取根节点页面
+	//pageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	//pageHandle->bOpen = false;
+	//GetThisPage(&fileHandle, fileHeader.rootPage, pageHandle);
+	////获取根节点页面的数据区
+	//char* pageData;
+	//GetData(pageHandle, &pageData);
+	////获取根节点页面得节点控制信息
+	//IX_Node* index_NodeControlInfo =
+	//	(IX_Node*)(pageData + sizeof(IX_FileHeader));
+	////索引文件页面的序数
+	//int order = fileHeader.order;
+	////索引关键字的长度
+	//int attrLength = fileHeader.attrLength;
+
+	////判断节点如果是叶子节点
+	//while (index_NodeControlInfo->is_leaf != 1) {
+	//	RID tempRid;
+	//	setInfoToPage(pageHandle, order, fileHeader.attrType, fileHeader.attrLength,
+	//		pData, &tempRid, false);  //查找将要插入关键字的页面
+	//	GetThisPage(&fileHandle, tempRid.pageNum, pageHandle);
+	//	GetData(pageHandle, &pageData);
+	//	index_NodeControlInfo = (IX_Node*)(pageData + sizeof(IX_FileHeader));
+	//}
+	//setInfoToPage(pageHandle, order, fileHeader.attrType, fileHeader.attrLength,
+	//	pData, rid, true);
+	//while (index_NodeControlInfo->keynum == order) {
+	//	int keynum = index_NodeControlInfo->keynum;
+	//	//获取关键字区
+	//	char* keys = pageData + sizeof(IX_FileHeader) + sizeof(IX_Node);
+	//	//获取指针区
+	//	char* rids = keys + order * attrLength;
+
+	//	PageNum nodePage;
+	//	GetPageNum(pageHandle, &nodePage);
+
+	//	//新叶子节点页面
+	//	PF_PageHandle* newLeafPageHandle = NULL;
+	//	newLeafPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	//	newLeafPageHandle->bOpen = false;
+	//	AllocatePage(&fileHandle, newLeafPageHandle);
+	//	PageNum newLeafPage;
+	//	GetPageNum(newLeafPageHandle, &newLeafPage);
+
+	//	int divide1 = keynum >> 1;
+	//	int divide2 = keynum - divide1;
+
+	//	if (index_NodeControlInfo->parent == 0)
+	//	{
+	//		//生成新的根页面
+	//		PF_PageHandle* newRootPageHandle = NULL;
+	//		newRootPageHandle = (PF_PageHandle*)malloc(sizeof(PF_PageHandle));
+	//		newRootPageHandle->bOpen = false;
+	//		AllocatePage(&fileHandle, newRootPageHandle);
+	//		PageNum newRootPage;
+	//		GetPageNum(newRootPageHandle, &newRootPage);
+	//		cpNewToPage(newRootPageHandle, 0, 0, 0, 0);  //设置新根节点的节点控制信息
+
+	//		cpNewToPage(newLeafPageHandle, index_NodeControlInfo->brother,
+	//			newRootPage, index_NodeControlInfo->is_leaf,
+	//			divide2);  //设置新分裂节点的节点控制信息
+	//		cpNewToPage(pageHandle, newLeafPage, newRootPage,
+	//			index_NodeControlInfo->is_leaf,
+	//			divide1);  //设置原节点控制信息
+
+	//		cpInfoToPage(
+	//			newLeafPageHandle, keys + divide1 * attrLength, attrLength, divide2,
+	//			order,
+	//			rids + divide1 * sizeof(RID));  //复制关键字和指针到分裂后新的页面中
+
+	//		char* tempData;
+	//		GetData(pageHandle, &tempData);
+	//		RID tempRid;
+	//		tempRid.bValid = false;
+	//		tempRid.pageNum = nodePage;
+	//		setInfoToPage(newRootPageHandle, order, fileHeader.attrType,
+	//			fileHeader.attrLength, tempData, &tempRid,
+	//			true);  //向新的根节点插入子节点的关键字和指针
+
+	//		GetData(newLeafPageHandle, &tempData);
+	//		tempRid.pageNum = newLeafPage;
+	//		setInfoToPage(newRootPageHandle, order, fileHeader.attrType,
+	//			fileHeader.attrLength, tempData, &tempRid,
+	//			true);  //向新的根节点插入子节点的关键字和指针
+
+	//		indexHandle->fileHeader.rootPage =
+	//			newRootPage;  //修改索引控制信息中的根节点页面
+	//		free(newRootPageHandle);
+	//	}
+	//	else  //说明当前分裂的节点不是根节点
+	//	{
+	//		PageNum parentPage = index_NodeControlInfo->parent;
+	//		cpNewToPage(newLeafPageHandle, nodePage, parentPage,
+	//			index_NodeControlInfo->is_leaf,
+	//			divide2);  //设置新分裂节点的节点控制信息
+	//		cpNewToPage(pageHandle, newLeafPage, parentPage,
+	//			index_NodeControlInfo->is_leaf,
+	//			divide1);  //设置原节点控制信息
+	//		cpInfoToPage(
+	//			newLeafPageHandle, keys + divide1 * attrLength, attrLength, divide2,
+	//			order,
+	//			rids + divide1 * sizeof(RID));  //复制关键字和指针到分裂后新的页面中
+
+	//		char* tempData;
+	//		GetData(newLeafPageHandle, &tempData);
+
+	//		RID tempRid;
+	//		tempRid.bValid = false;
+	//		tempRid.pageNum = newLeafPage;
+
+	//		GetThisPage(&fileHandle, parentPage,
+	//			pageHandle);  //令pageHandle指向其父节点页面
+	//		setInfoToPage(pageHandle, order, fileHeader.attrType,
+	//			fileHeader.attrLength, tempData, &tempRid,
+	//			true);  //向父节点插入新子节点的关键字和指针
+
+	//		GetData(pageHandle, &pageData);  //令pageData指向父节点的数据区
+	//		index_NodeControlInfo =
+	//			(IX_Node*)(pageData + sizeof(IX_FileHeader));  //父节点的节点控制信息
+	//	}
+	//	free(newLeafPageHandle);
+	//}
+
+	//free(pageHandle);
+
+	return SUCCESS;
 }
 
-RC DeleteEntry(IX_IndexHandle *indexHandle, void *pData, const RID *rid) {
-  PF_PageHandle *pageDelete = new PF_PageHandle;
-  int pageNum = getNodeByKey(indexHandle, pData);
-  GetThisPage(&indexHandle->fileHandle, pageNum, pageDelete);
-
-  RC rtn = _delete(indexHandle, pData, rid, pageDelete);
-  free(pageDelete);
-  return rtn;
+void cpInfoToPage(PF_PageHandle* pageHandle, void* keySrc, int attrLength,
+	int num, int order, void* ridSrc) {
+	char* pData;
+	GetData(pageHandle, &pData);
+	pData = pData + sizeof(IX_FileHeader) + sizeof(IX_Node);
+	memcpy(pData, keySrc, num * attrLength);
+	pData = pData + order * attrLength;
+	memcpy(pData, ridSrc, num * sizeof(RID));
 }
 
-RC OpenIndexScan(IX_IndexScan *indexScan, IX_IndexHandle *indexHandle,
-                 CompOp compOp, char *value) {
-  indexScan->bOpen = true;
-  indexScan->compOp = compOp;
-  indexScan->pIXIndexHandle = indexHandle;
-  indexScan->value = value;
-  switch (compOp) {
-    case NO_OP:
-    case LEqual:
-    case LessT:
-      indexScan->pnNext = indexHandle->fileHeader.first_leaf;
-      indexScan->ridIx = 0;
-      GetThisPage(&indexHandle->fileHandle, indexScan->pnNext,
-                  indexScan->pfPageHandle);
-      indexScan->currentPageControl =
-          (IX_Node *)(indexScan->pfPageHandle->pFrame->page.pData +
-                      sizeof(IX_FileHeader));
-      return SUCCESS;
-    default:
-      break;
-  }
-  int startPageNumber = getNodeByKey(indexHandle, value);
-  GetThisPage(&indexHandle->fileHandle, startPageNumber,
-              indexScan->pfPageHandle);
-  IX_Node *startPageControl =
-      (IX_Node *)(indexScan->pfPageHandle->pFrame->page.pData +
-                  sizeof(IX_FileHeader));
-  int indexOffset, rtn;
-  float targetVal, indexVal;
-  for (indexOffset = 0; indexOffset < startPageControl->keynum; indexOffset++) {
-    switch (indexHandle->fileHeader.attrType) {
-      case 0:
-        rtn = strcmp((char *)value,
-                     startPageControl->keys +
-                         indexOffset * indexHandle->fileHeader.keyLength +
-                         sizeof(RID));
-      case 1:
-      case 2:
-        targetVal = *(float *)value;
-        indexVal = *(float *)(startPageControl->keys +
-                              indexOffset * indexHandle->fileHeader.keyLength +
-                              sizeof(RID));
-        rtn = (targetVal < indexVal) ? -1 : ((targetVal == indexVal) ? 0 : 1);
-        break;
-      default:
-        break;
-    }
-    if (rtn == 0) {
-      indexScan->pnNext = indexScan->pfPageHandle->pFrame->page.pageNum;
-      indexScan->ridIx =
-          (compOp == EQual || compOp == GEqual) ? indexOffset : indexOffset + 1;
-
-      indexScan->currentPageControl = startPageControl;
-      return SUCCESS;
-    } else if (rtn < 0) {
-      if (compOp == EQual)
-        return FAIL;
-      else {
-        indexScan->pnNext = indexScan->pfPageHandle->pFrame->page.pageNum;
-        indexScan->ridIx = indexOffset;
-
-        indexScan->currentPageControl = startPageControl;
-        return SUCCESS;
-      }
-    }
-  }
-  if (indexOffset == startPageControl->keynum) {
-    if (compOp == EQual)
-      return FAIL;
-    else {
-      indexScan->pnNext = startPageControl->brother;
-      indexScan->ridIx = 0;
-      GetThisPage(&indexHandle->fileHandle, startPageControl->brother,
-                  indexScan->pfPageHandle);
-      indexScan->currentPageControl =
-          (IX_Node *)(indexScan->pfPageHandle->pFrame->page.pData +
-                      sizeof(IX_FileHeader));
-      return SUCCESS;
-    }
-  }
-  return SUCCESS;
+void cpNewToPage(PF_PageHandle* pageHandle, PageNum brother, PageNum parent,
+	int is_leaf, int keynum) {
+	IX_Node newNodeInfo;
+	newNodeInfo.brother = brother;
+	newNodeInfo.parent = parent;
+	newNodeInfo.is_leaf = is_leaf;
+	newNodeInfo.keynum = keynum;
+	char* pData;
+	GetData(pageHandle, &pData);
+	memcpy(pData + sizeof(IX_FileHeader), &newNodeInfo, sizeof(IX_Node));
 }
 
-RC IX_GetNextEntry(IX_IndexScan *indexScan, RID *rid) {
-  if (indexScan->ridIx == indexScan->currentPageControl->keynum) {
-    if (indexScan->currentPageControl->brother == -1)
-      return FAIL;
-    else {
-      indexScan->pnNext = indexScan->currentPageControl->brother;
-      GetThisPage(&indexScan->pIXIndexHandle->fileHandle, indexScan->pnNext,
-                  indexScan->pfPageHandle);
-      indexScan->currentPageControl =
-          (IX_Node *)(indexScan->pfPageHandle->pFrame->page.pData +
-                      sizeof(IX_FileHeader));
-      indexScan->ridIx = 0;
-    }
-  }
-  if (indexScan->compOp != NO_OP) {
-    switch (indexScan->pIXIndexHandle->fileHeader.attrType) {
-      case chars:
-        if (!compareLeafString(
-                indexScan->currentPageControl->keys +
-                    indexScan->ridIx *
-                        indexScan->pIXIndexHandle->fileHeader.keyLength +
-                    sizeof(RID),
-                indexScan->value, indexScan->compOp))
-          return FAIL;
-      case ints:
-      case floats:
-        if (!compareLeafValue(
-                *(float *)(indexScan->currentPageControl->keys +
-                           indexScan->ridIx *
-                               indexScan->pIXIndexHandle->fileHeader.keyLength +
-                           sizeof(RID)),
-                *(float *)indexScan->value, indexScan->compOp))
-          return FAIL;
-        break;
-    }
-  }
-  rid->bValid = true;
-  rid->pageNum = indexScan->pnNext;
-  rid->slotNum = indexScan->ridIx;
-  indexScan->ridIx++;
-  return SUCCESS;
+//将给定的关键字和指针写到指定的页面
+void setInfoToPage(PF_PageHandle* pageHandle, int order, AttrType attrType,
+	int attrLength, void* pData, RID* rid, bool insertIfTrue) {
+	char* parentData;
+	char* parentKeys;
+	char* parentRids;
+
+	GetData(pageHandle, &parentData);
+
+	//获取根节点页面得节点控制信息
+	IX_Node* nodeControlInfo = (IX_Node*)(parentData + sizeof(IX_FileHeader));
+	int keynum = nodeControlInfo->keynum;
+
+	//获取关键字区
+	parentKeys = parentData + sizeof(IX_FileHeader) + sizeof(IX_Node);
+	//获取指针区
+	parentRids = parentKeys + order * attrLength;
+
+	int position = 0;
+	switch (attrType) {
+	case chars:
+		for (; position < keynum; position++) {
+			if (strcmp(parentKeys + position * attrLength, (char*)pData) > 0)
+				break;
+		}
+		break;
+	case ints:
+		int data1;
+		data1 = *((int*)pData);
+		for (; position < keynum; position++) {
+			int data2 = *((int*)parentKeys + position * attrLength);
+			if (data2 > data1) break;
+		}
+		break;
+	case floats:
+		float data_floats = *((float*)pData);
+		for (; position < keynum; position++) {
+			float data2 = *((float*)parentKeys + position * attrLength);
+			if (data2 > data_floats) break;
+		}
+		break;
+	}
+	if (insertIfTrue) {
+		memcpy(parentKeys + (position + 1) * attrLength,
+			parentKeys + position * attrLength,
+			(keynum - position) * attrLength);
+		memcpy(parentKeys + position * attrLength, pData, attrLength);
+		//插入关键字的指针
+		memcpy(parentRids + (position + 1) * sizeof(RID),
+			parentRids + position * sizeof(RID),
+			(keynum - position) * sizeof(RID));
+		memcpy(parentRids + position * sizeof(RID), rid, sizeof(RID));
+		keynum++;
+		nodeControlInfo->keynum = keynum;
+	}
+	else {
+		position--;
+		//关键字将会插入到第一个关键字处
+		if (position < 0) {
+			//插入到最前面的页面
+			position = 0;
+			//修改所指向页面的最小关键字
+			memcpy(parentKeys, pData, attrLength);
+		}
+		memcpy(rid, parentRids + position * sizeof(RID), sizeof(RID));
+	}
 }
 
-RC CloseIndexScan(IX_IndexScan *indexScan) {
-  indexScan->bOpen = false;
-  indexScan->pfPageHandle->pFrame->bDirty = false;
-  CloseIndex(indexScan->pIXIndexHandle);
-  return SUCCESS;
+//索引的删除
+RC DeleteEntry(IX_IndexHandle* indexHandle, void* pData, RID* rid) {
+	// TODO: 完成索引删除
+	return SUCCESS;
 }
 
-RC GetIndexTree(char *fileName, Tree *index) {
-  IX_IndexHandle *indexHandle = new IX_IndexHandle;
-  if (openFile(fileName, &indexHandle->fileHandle)) return FAIL;
-
-  char *pageData = nullptr;
-  char *pageKeys = nullptr;
-  char *pageRids = nullptr;
-  IX_Node *nodeControlInfo = nullptr;
-
-  Tree_Node *treeNode = new Tree_Node;
-  Tree_Node *bnode = new Tree_Node;
-  Tree_Node *firstChild = nullptr;
-
-  index->attrLength = indexHandle->fileHeader.attrLength;
-  index->attrType = indexHandle->fileHeader.attrType;
-  index->order = indexHandle->fileHeader.order;
-  PF_PageHandle *pageHandle = new PF_PageHandle;
-  GetThisPage(&indexHandle->fileHandle, indexHandle->fileHeader.rootPage,
-              pageHandle);
-  GetData(pageHandle, &pageData);
-  nodeControlInfo = (IX_Node *)(pageData + sizeof(IX_FileHeader));
-  pageKeys = pageData + sizeof(IX_FileHeader) + sizeof(IX_Node);
-  pageRids = pageKeys +
-             indexHandle->fileHeader.order * indexHandle->fileHeader.attrLength;
-
-  index->root->keyNum = nodeControlInfo->keynum;
-  memcpy(index->root->keys, pageKeys,
-         nodeControlInfo->keynum * indexHandle->fileHeader.attrLength);
-  index->root->sibling = nullptr;
-  index->root->parent = nullptr;
-
-  return SUCCESS;
+RC OpenIndexScan(IX_IndexScan* indexScan, IX_IndexHandle* indexHandle,
+	CompOp compOp, char* value) {
+	return SUCCESS;
 }
+
+RC IX_GetNextEntry(IX_IndexScan* indexScan, RID* rid) { return SUCCESS; }
+
+RC CloseIndexScan(IX_IndexScan* indexScan) { return SUCCESS; }
+
+RC GetIndexTree(char* fileName, Tree* index) { return SUCCESS; }
