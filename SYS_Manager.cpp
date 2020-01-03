@@ -153,7 +153,7 @@ SHOWRES:
 	default:
 		row_num = 1;
 		messages = new char* [row_num];
-		messages[0] = "功能未实现";
+		messages[0] = "查询出现错误";
 		editArea->ShowMessage(row_num, messages);
 		delete[] messages;
 		break;
