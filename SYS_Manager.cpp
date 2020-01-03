@@ -9,6 +9,8 @@
 #include "DebugLogger.h"
 #include <string>
 #include <algorithm>
+#include "HustBase.h"
+#include "HustBaseDoc.h"
 
 using namespace std;
 
@@ -19,7 +21,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	{
 		SelResult res;
 		rc = Query(sql, &res);
-		if (rc != SUCCESS) return;
+		if (rc != SUCCESS) goto SHOWRES;
 		//将查询结果处理一下，整理成下面这种形式
 		//调用editArea->ShowSelResult(col_num,row_num,fields,rows);
 		int col_num = res.col_num;
@@ -132,6 +134,7 @@ void ExecuteAndMessage(char* sql, CEditArea* editArea) {//根据执行的语句类型在界
 	rc = execute(sql);
 	int row_num = 0;
 	char** messages;
+SHOWRES:
 	switch (rc) {
 	case SUCCESS:
 		row_num = 1;
@@ -270,6 +273,8 @@ RC DropDB(char* dbname) {
 	return SQL_SYNTAX;	//任意条件不满足，则返回SQL_SYNTAX
 }
 
+bool isOpen = false;
+
 //打开数据库，未完成
 RC OpenDB(char* dbname) {
 	RC rc;
@@ -278,6 +283,10 @@ RC OpenDB(char* dbname) {
 		strcpy(systablespath, dbname);
 		if (PathFileExistsA(strcat(systablespath, "\\SYSTABLES"))) {	//通过文件夹里是否存在SYSTABLES判断是否是数据库文件夹
 			SetCurrentDirectory(dbname);	//切换工作目录到数据库文件夹
+			isOpen = true;
+			CHustBaseDoc* pdoc = CHustBaseDoc::GetDoc();
+			CHustBaseApp::pathvalue = true;
+			pdoc->m_pTreeView->PopulateTree();
 			return SUCCESS;
 		}
 	}
@@ -298,6 +307,7 @@ RC CloseDB() {
 	//	}
 	//}
 	//return SQL_SYNTAX;
+	isOpen = false;
 	return SUCCESS;
 }
 
@@ -929,8 +939,5 @@ RC Update(char* relName, char* attrName, Value* Value, int nConditions, Conditio
 
 
 bool CanButtonClick() {//需要重新实现
-	//如果当前有数据库已经打开
-	return true;
-	//如果当前没有数据库打开
-	//return false;
+	return isOpen;
 }

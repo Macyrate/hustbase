@@ -116,6 +116,7 @@ void CTreeList::InsertDBNodes()
 
 	HTREEITEM hItem, hsubItem, hCItem;
 	hsubItem = NULL;
+	hCItem = NULL;
 	char tabname[20][20];
 	char colname[20][20][20];
 	AttrType coltype[20][20];
