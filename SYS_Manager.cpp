@@ -496,8 +496,28 @@ RC DropTable(char* relName) {
 //②逐个扫描被索引的记录，并向索引文件中插入索引项；
 //③关闭索引。
 RC CreateIndex(char* indexName, char* relName, char* attrName) {
+	CFileFind fileFind;
+	if (!fileFind.FindFile(relName))
+		return	TABLE_NOT_EXIST;					//检查表是否存在
+
+	RM_FileScan* FileScan = (RM_FileScan*)calloc(1, sizeof(RM_FileScan));
+	RM_FileHandle* hTable = (RM_FileHandle*)calloc(1, sizeof(RM_FileHandle));
+	RM_Record* tableRec = (RM_Record*)calloc(1, sizeof(RM_Record));
+
+	OpenScan(FileScan, hTable, 0, NULL);
+	if (GetNextRec(FileScan, tableRec) != SUCCESS)		//空表创建索引
+	{
+		RM_CloseFile(hTable);
+		CloseScan(FileScan);
+		free(FileScan);
+		free(hTable);
+		free(tableRec);
+		return INDEX_CREATE_FAILED;
+	}
+
 	return SUCCESS;
 }
+
 
 //仅删除索引文件的基础暴力完成，待修改
 //该函数用来删除名为indexName的索引。
